@@ -1,0 +1,38 @@
+{
+  "name": "com.blamcon.lightguns",
+  "displayName": "Blamcon Lightguns for Unity",
+  "version": "0.9.0",
+  "unity": "6000.0",
+  "description": "A new add-on that extends Unity's InputSystem to support Blamcon Lightguns.",
+  "keywords": [
+    "input",
+    "events",
+    "lightgun",
+    "mouse",
+    "gamepad"
+  ],
+  "dependencies": {
+    "com.unity.inputsystem": "1.14.0"
+  },
+  "documentationUrl": "",
+  "repository": {
+    "url": "https://github.com/Props3D/UnityLightguns.git",
+    "type": "git"
+  },
+  "author": "Props3D",
+  "bugs": {
+    "url": "https://github.com/Props3D/UnityLightguns/issues"
+  },
+  "samples": [
+    {
+      "displayName": "Controlling Lightgun Crosshair",
+      "description": "Shows how to implement a lightgun crosshair with standard lightgun input actions.",
+      "path": "Samples~/LightgunCrosshair"
+    },
+    {
+      "displayName": "Lightgun Recoil Command",
+      "description": "Shows how to use lightgun recoil commands using the OnFire input action callback.",
+      "path": "Samples~/LightgunRecoilCommand"
+    }
+  ]
+}

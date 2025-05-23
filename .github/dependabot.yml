@@ -1,0 +1,13 @@
+# Basic `dependabot.yml` file with
+# minimum configuration for github actions
+
+version: 2
+updates:
+  # Enable version updates for github actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      # Check for updates to GitHub Actions every weekday
+      interval: "daily"
+    ignore:
+      - dependency-name: "Props3D/action-automatic-releases"
