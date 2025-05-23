@@ -1,0 +1,19 @@
+{
+    "name": "Blamcon.Lightguns.IntegrationTests",
+    "rootNamespace": "",
+    "references": [
+        "GUID:9ba56a88fed993040a720447f67a8e39",
+        "GUID:75469ad4d38634e559750d17036d5f7c"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": ["UNITY_INCLUDE_TESTS"],
+    "versionDefines": []
+}
