@@ -101,6 +101,7 @@ namespace Samples.LightgunRecoilCommand
             {
                 // recoil once
                 device.ActivateRecoil(1);
+                device.SendAmmoCount(ammoLeft);
             }
         }
         /// <summary>

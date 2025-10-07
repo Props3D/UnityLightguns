@@ -263,15 +263,38 @@ namespace Blamcon.Lightguns
                 Debug.LogError($"Failed to send command to {name}. Error: {result}");
             return result >= 0;
         }
-
-        /// <inheritdoc />
-        public bool EnableFFBControl(bool recoil = true, bool rumble = true, bool led = true)
+        /// <summary>
+        /// Use to send ammo command to this specific device.
+        /// </summary>
+        /// <param name="command">The ammo command.</param>
+        public bool SendCommand(ref BlamconAmmoCommand command)
         {
-            var command = BlamconHIDOutputReport.Create(recoil, rumble, led);
             // Send the command to the device
             long result = ExecuteCommand(ref command);
             if (result < 0)
-                Debug.LogError($"Failed to send rumble command to {name}. Error: {result}");
+                Debug.LogError($"Failed to send command to {name}. Error: {result}");
+            return result >= 0;
+        }
+
+        /// <inheritdoc />
+        public bool EnableFFBControl(bool recoil = true, bool rumble = true, bool led = true, bool ammo = false)
+        {
+            var command = BlamconHIDOutputReport.Create(recoil, rumble, led, ammo);
+            // Send the command to the device
+            long result = ExecuteCommand(ref command);
+            if (result < 0)
+                Debug.LogError($"Failed to send FFB control command to {name}. Error: {result}");
+            return result >= 0;
+        }
+        /// <inheritdoc />
+        public bool EnableAmmoFFBControl(bool ammo = true)
+        {
+            var command = BlamconHIDOutputReport.Create();
+            command.EnableAmmoFFBControl(ammo);
+            // Send the command to the device
+            long result = ExecuteCommand(ref command);
+            if (result < 0)
+                Debug.LogError($"Failed to send Ammo FFB control command to {name}. Error: {result}");
             return result >= 0;
         }
 
@@ -345,6 +368,18 @@ namespace Blamcon.Lightguns
             long result = ExecuteCommand(ref command);
             if (result < 0)
                 Debug.LogError($"Failed to send LED command to {name}. Error: {result}");
+            return result >= 0;
+        }
+        /// <inheritdoc />
+        public bool SendAmmoCount(int remaining)
+        {
+            var command = BlamconHIDOutputReport.Create();
+            command.SetAmmo(remaining);
+
+            // Send the command to the device
+            long result = ExecuteCommand(ref command);
+            if (result < 0)
+                Debug.LogError($"Failed to send Ammo count to {name}. Error: {result}");
             return result >= 0;
         }
 
