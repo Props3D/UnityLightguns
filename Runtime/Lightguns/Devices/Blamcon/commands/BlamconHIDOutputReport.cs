@@ -26,14 +26,16 @@ namespace Blamcon.Lightguns.LowLevel
         [FieldOffset(0)] public InputDeviceCommand baseCommand;
         [FieldOffset(InputDeviceCommand.BaseCommandSize + 0)] public byte reportId;
 
-        [FieldOffset(InputDeviceCommand.BaseCommandSize + 1)] public byte EnableRumbleUpdate;
-        [FieldOffset(InputDeviceCommand.BaseCommandSize + 2)] public byte EnableRumbleFFBControl;
-        [FieldOffset(InputDeviceCommand.BaseCommandSize + 3)] public byte EnableLedUpdate;
-        [FieldOffset(InputDeviceCommand.BaseCommandSize + 4)] public byte EnableLedFFBControl;
-        [FieldOffset(InputDeviceCommand.BaseCommandSize + 5)] public byte EnableRecoilUpdate;
-        [FieldOffset(InputDeviceCommand.BaseCommandSize + 6)] public byte EnableRecoilFFBControl;
+        [FieldOffset(InputDeviceCommand.BaseCommandSize + 1)] public byte enableRumbleUpdate;
+        [FieldOffset(InputDeviceCommand.BaseCommandSize + 2)] public byte enableRumbleFFBControl;
+        [FieldOffset(InputDeviceCommand.BaseCommandSize + 3)] public byte enableLedUpdate;
+        [FieldOffset(InputDeviceCommand.BaseCommandSize + 4)] public byte enableLedFFBControl;
+        [FieldOffset(InputDeviceCommand.BaseCommandSize + 5)] public byte enableRecoilUpdate;
+        [FieldOffset(InputDeviceCommand.BaseCommandSize + 6)] public byte enableRecoilFFBControl;
+        [FieldOffset(InputDeviceCommand.BaseCommandSize + 7)] public byte enableAmmoUpdate;
+        [FieldOffset(InputDeviceCommand.BaseCommandSize + 8)] public byte enableAmmoFFBControl;
 
-        // [FieldOffset(InputDeviceCommand.BaseCommandSize + 7)] public fixed byte pad1[8];
+        // [FieldOffset(InputDeviceCommand.BaseCommandSize + 9)] public fixed byte pad1[6];
 
         [FieldOffset(InputDeviceCommand.BaseCommandSize + 15)] public byte rumble;
         [FieldOffset(InputDeviceCommand.BaseCommandSize + 16)] public short rumbleOnPeriod;
@@ -52,21 +54,31 @@ namespace Blamcon.Lightguns.LowLevel
         [FieldOffset(InputDeviceCommand.BaseCommandSize + 30)] public byte recoilOnPeriod;
         [FieldOffset(InputDeviceCommand.BaseCommandSize + 31)] public byte recoilOffPeriod;
 
-        // [FieldOffset(InputDeviceCommand.BaseCommandSize + 32)] public fixed byte pad2[8];
+        [FieldOffset(InputDeviceCommand.BaseCommandSize + 32)] public byte ammoRemaining;
+        [FieldOffset(InputDeviceCommand.BaseCommandSize + 33)] public byte ammoUsed;
+        [FieldOffset(InputDeviceCommand.BaseCommandSize + 34)] public byte ammoMax;
+        // [FieldOffset(InputDeviceCommand.BaseCommandSize + 34)] public fixed byte pad2[5];
 
         public FourCC typeStatic => Type;
-        public void EnableFFBControl(bool recoil = true, bool rumble = true, bool led = true)
+        public void EnableFFBControl(bool recoil = true, bool rumble = true, bool led = true, bool ammo = true)
         {
-            EnableRecoilUpdate = 1;
-            EnableRecoilFFBControl = (recoil == true) ? (byte)3 : (byte)2;
-            EnableRumbleUpdate = 1;
-            EnableRumbleFFBControl = (rumble == true) ? (byte)3 : (byte)2;
-            EnableLedUpdate = 1;
-            EnableLedFFBControl = (led == true) ? (byte)3 : (byte)2;
+            enableRecoilUpdate = 1;
+            enableRecoilFFBControl = (recoil == true) ? (byte)3 : (byte)2;
+            enableRumbleUpdate = 1;
+            enableRumbleFFBControl = (rumble == true) ? (byte)3 : (byte)2;
+            enableLedUpdate = 1;
+            enableLedFFBControl = (led == true) ? (byte)3 : (byte)2;
+            enableAmmoUpdate = 1;
+            enableAmmoFFBControl = (ammo == true) ? (byte)3 : (byte)2;
+        }
+        public void EnableAmmoFFBControl(bool ammo = true)
+        {
+            enableAmmoUpdate = 1;
+            enableAmmoFFBControl = (ammo == true) ? (byte)3 : (byte)2;
         }
         public void SetRumble(int pulse)
         {
-            EnableRumbleUpdate = 1;
+            enableRumbleUpdate = 1;
             rumble = (byte)Math.Clamp(pulse, 0, 10);
         }
         public void SetRumble(int pulse, int on, int off)
@@ -77,7 +89,7 @@ namespace Blamcon.Lightguns.LowLevel
         }
         public void SetColor(int index, Color color)
         {
-            EnableLedUpdate = 1;
+            enableLedUpdate = 1;
             ledRed = (byte)Mathf.Clamp(color.r * 255, 0, 255);
             ledGreen = (byte)Mathf.Clamp(color.g * 255, 0, 255);
             ledBlue = (byte)Mathf.Clamp(color.b * 255, 0, 255);
@@ -95,13 +107,20 @@ namespace Blamcon.Lightguns.LowLevel
             ledFlashOffPeriod = (short)Math.Clamp(off, 40, 2000);
         }
         public void SetRecoil(int pulse) {
-            EnableRecoilUpdate = 1;
+            enableRecoilUpdate = 1;
             recoil = (byte)Math.Clamp(pulse, 0, 10);
         }
         public void SetRecoil(int pulse, int on, int off) {
             SetRecoil(pulse);
             recoilOnPeriod = (byte)Math.Clamp(on, 15, 255);
             recoilOffPeriod = (byte)Math.Clamp(off, 15, 255);
+        }
+        public void SetAmmo(int remaining)
+        {
+            enableAmmoUpdate = 1;
+            ammoRemaining = (byte)remaining;
+            ammoUsed = 0;
+            ammoMax = 0;
         }
         public static BlamconHIDOutputReport Create() // Removed size param if it's fixed
         {
@@ -111,18 +130,20 @@ namespace Blamcon.Lightguns.LowLevel
                 reportId = kReportId,
             };
         }
-        public static BlamconHIDOutputReport Create(bool recoil = true, bool rumble = true, bool led = true) // Removed size param if it's fixed
+        public static BlamconHIDOutputReport Create(bool recoil = true, bool rumble = true, bool led = true, bool ammo = true) // Removed size param if it's fixed
         {
             return new BlamconHIDOutputReport
             {
                 baseCommand = new InputDeviceCommand(Type, kSize), // Use kSize
                 reportId = kReportId,
-                EnableRecoilUpdate = 1,
-                EnableRecoilFFBControl = (recoil == true) ? (byte)3 : (byte)2,
-                EnableRumbleUpdate = 1,
-                EnableRumbleFFBControl = (rumble == true) ? (byte)3 : (byte)2,
-                EnableLedUpdate = 1,
-                EnableLedFFBControl = (led == true) ? (byte)3 : (byte)2
+                enableRecoilUpdate = 1,
+                enableRecoilFFBControl = (recoil == true) ? (byte)3 : (byte)2,
+                enableRumbleUpdate = 1,
+                enableRumbleFFBControl = (rumble == true) ? (byte)3 : (byte)2,
+                enableLedUpdate = 1,
+                enableLedFFBControl = (led == true) ? (byte)3 : (byte)2,
+                enableAmmoUpdate = 1,
+                enableAmmoFFBControl = (ammo == true) ? (byte)3 : (byte)2
             };
         }
     }

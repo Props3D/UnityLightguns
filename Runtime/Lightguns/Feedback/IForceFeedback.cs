@@ -22,7 +22,8 @@ namespace Blamcon.Lightguns
         /// is enabled the recoil will not fire when pulling the trigger, it will only recoil
         /// when the application gives the command.
         /// </remarks>
-        public bool EnableFFBControl(bool recoil = true, bool rumble = true, bool led = true);
+        public bool EnableFFBControl(bool recoil = true, bool rumble = true, bool led = true, bool ammo = false);
+        public bool EnableAmmoFFBControl(bool ammo = true);
 
         /// <summary>
         /// Activate vibration motor on the device.
@@ -124,5 +125,18 @@ namespace Blamcon.Lightguns
         ///
         /// </remarks>
         public bool ActivateLED(int index, Color color, int flashes);
+        /// <summary>
+        /// Send Ammo Count to device.
+        /// </summary>
+        /// <value>Specify the amount of ammo remaining.</value>
+        /// <remarks>
+        /// An Ammo Count can be sent to the device mainly for the purpose of displaying. These displays
+        /// can take the form of a 2-digit seven segment led display or something more modern like OLED
+        /// screens. The count should represent the amount of ammo remaining to the current player. Send
+        /// ammo count when ammo changes in the game i.e. on start, on reload, on fire, etc.
+        ///
+        /// Returns a boolean to indicate if the IOCTL command was successful.
+        /// </remarks>
+        public bool SendAmmoCount(int remaining);
     }
 }
