@@ -47,7 +47,7 @@ These are the most common set of Controls used by Lightguns when set to Gamepad 
 
 ### Remapping Absolute Positions
 
-Modern lightguns are driven by using an IR Camera and IR emitters to determine the absolute coordinates of the cursor position. The input range of absolute positional coordinates vary between different lightguns. Blamcon lightguns advertise a range of values between [0 - 32768].
+Modern lightguns are driven by using an IR Camera and IR emitters to determine the absolute coordinates of the cursor position. The input range of absolute positional coordinates vary between different lightguns. Blamcon lightguns advertise a range of values between [0 - 32767].
 
 In order to translate these inputs, a generic input processor is used that remaps the Vector2 value from a configurable input range into screen pixel coordinates or normalized [0–1] viewport coordinates. This is commonly used for absolute-position input devices like lightguns or tablets where incoming values range from fixed bounds (e.g., 0–32767, 0–65535, or even signed ranges).
 
@@ -71,7 +71,7 @@ OR You can do the same in your C# state structs.
 ```CSharp
     public struct MyDeviceState
     {
-        [InputControl(processors = "AbsolutePositionRemap"]
+        [InputControl(processors = "AbsolutePositionRemap")]
         public Vector2 position;
     }
 ```
@@ -89,6 +89,15 @@ Blamcon Lightguns provide the ability to control different feedback components, 
 > NOTE: Due to limitations in the USB driver and/or the hardware, only one IOCTL (input/output control) command can be serviced at a time. Feedback functionality is implemented using IOCTL commands, and so if different methods are called in quick succession, it is likely that only the first command will successfully complete. The other commands will be dropped.
 
 If there is a need to activate recoil, rumble, or LED at the same time, use the [`BlamconHIDOutputReport`] struct and set the state for each component then use `BlamconLightgunHID.SendCommand(ref cmd)`. Alternatively, setup coroutines to send multiple commands with enough of a delay between each one. See the samples for examples to follow. 
+
+#### Firmware compatibility notes (release-3.0)
+
+* Force feedback is only processed while the lightgun is in Gamepad mode and in play mode. Output reports are handled over USB, and over Bluetooth Classic with current 3.0 firmware (3.0.0 and earlier handle them over USB only).
+* `SendAmmoCount` only takes effect after ammo control has been enabled, e.g. `EnableFFBControl(ammo: true)` or `EnableAmmoFFBControl(true)`. Enabling ammo control resets the display, so send the starting count in the same report (`command.SetAmmo(n)`).
+* The LED `index` parameter is currently ignored by the firmware.
+* `BlamconHIDOutputReport` (report `0x10`) is the recommended command, and the only one that is reliable. Unity sizes every HID output command to the device's largest output report (40 bytes here), which is what the Windows HID stack expects; the firmware accepts the single-component commands (`BlamconRecoilCommand` `0x20`, `BlamconRumbleCommand` `0x21`, `BlamconLEDCommand` `0x22`, `BlamconAmmoCommand` `0x23`) only at their exact declared size, so those padded writes are ignored. `0x23` is additionally undeclared in the HID descriptor on firmware 3.0.0 and earlier, where the host itself may reject it.
+* Timing limits (enforced by the firmware and clamped by this package): rumble 100-2400 ms on and off, LED flash 20-5000 ms on and off, recoil 15-200 ms on and 45-200 ms off. If you send no timings, the device defaults are used.
+* Firmware 3.0.0 and earlier read the rumble and LED on/off periods only when the low byte is non-zero, silently dropping periods that are exact multiples of 256 ms (256, 512, 768, 1024, 1280, 1536, 1792). Current 3.0 firmware reads the full 16-bit value; avoid those values only if you need to support the older builds.
 
 
 ```CSharp

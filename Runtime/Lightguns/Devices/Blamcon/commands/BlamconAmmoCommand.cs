@@ -7,6 +7,12 @@ namespace Blamcon.Lightguns.LowLevel
 {
     // BlamconAmmoCommand remains the same as it defines an output command.
     // Ensure its size and offsets are correct for your device's output report.
+    //
+    // NOTE: report 0x23 is declared in the HID report descriptor only in current 3.0 firmware;
+    // on 3.0.0 and earlier the host HID stack (e.g. Windows) may reject it. The firmware also
+    // accepts this report only at its exact declared size, while Unity pads output commands to
+    // the device's largest output report, so those writes are ignored.
+    // Prefer BlamconLightgunHID.SendAmmoCount(), which uses the combined 0x10 output report.
     [StructLayout(LayoutKind.Explicit, Size = kSize)]
     public struct BlamconAmmoCommand : IBlamconCommand
     {
@@ -29,7 +35,7 @@ namespace Blamcon.Lightguns.LowLevel
             enableFFBControl = enable ? (byte)3 : (byte)2;
         }
         public void SetAmmo(int remaining) {
-            ammoRemaining = (byte)remaining;
+            ammoRemaining = (byte)Math.Clamp(remaining, 0, 255);
         }
         public static BlamconAmmoCommand Create(int remaining) // Removed size param if it's fixed
         {
@@ -37,7 +43,7 @@ namespace Blamcon.Lightguns.LowLevel
             {
                 baseCommand = new InputDeviceCommand(Type, kSize), // Use kSize
                 reportId = kReportId,
-                ammoRemaining = (byte)remaining
+                ammoRemaining = (byte)Math.Clamp(remaining, 0, 255)
             };
         }
     }

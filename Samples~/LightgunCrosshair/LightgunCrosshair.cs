@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
+using Blamcon.Lightguns;
 
 namespace Samples.LightgunCrosshair
 {
@@ -79,12 +80,12 @@ namespace Samples.LightgunCrosshair
         Vector2 getCursorScreenPosition(InputAction.CallbackContext context)
         {
             Vector2 rawInput = default(Vector2);
-	    if (context.control is Vector2Control) {
+            if (context.control is Vector2Control) {
                 rawInput = context.ReadValue<Vector2>();
-            } else if (context.control.device is Mouse) {
-                rawInput = Mouse.current.position.ReadValue();
-            } else if (context.control.device is Lightgun) {
-                rawInput = Lightgun.current.position.ReadValue();
+            } else if (context.control.device is Mouse mouse) {
+                rawInput = mouse.position.ReadValue();
+            } else if (context.control.device is Lightgun lightgun) {
+                rawInput = lightgun.position.ReadValue();
             }
             return Camera.main.ScreenToWorldPoint(new Vector3(Mathf.Clamp(rawInput.x, 0, Screen.width), Mathf.Clamp(rawInput.y, 0, Screen.height), Camera.main.nearClipPlane));
         }

@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
+using Blamcon.Lightguns;
+using Blamcon.Lightguns.LowLevel;
 
 namespace Samples.LightgunRecoilCommand
 {
@@ -12,7 +14,7 @@ namespace Samples.LightgunRecoilCommand
         // The bullet/shot that appears when you shoot - references a prefab object
         [SerializeField] private Transform shotObject;
         // The number of bullets left
-        private float ammoLeft;
+        private int ammoLeft;
 
 
         /// <summary>
@@ -24,7 +26,7 @@ namespace Samples.LightgunRecoilCommand
         /// </summary>
         void Start()
         {
-            ammoLeft = 99.0f;
+            ammoLeft = 99;
             // enable forced feedback control so that only game commands cause recoil actions.
             EnableForcedFeedbackControl(true);
         }
@@ -71,39 +73,36 @@ namespace Samples.LightgunRecoilCommand
         }
 
         /// <summary>
-        /// Attempts to enable the forced feedback control to the game application.
+        /// Attempts to enable (or release) the forced feedback control to the game application.
         /// </summary>
         public void EnableForcedFeedbackControl(bool enable)
         {
             BlamconLightgunHID device = InputSystem.GetDevice<BlamconLightgunHID>();
             if (device != null)
             {
-                device.EnableFFBControl();
+                // Ammo control must be enabled for the device to accept ammo counts.
+                // Send the enable and the initial ammo count together in one report.
+                var command = BlamconHIDOutputReport.Create(enable, enable, enable, enable);
+                if (enable)
+                    command.SetAmmo(ammoLeft);
+                device.SendCommand(ref command);
             }
         }
 
         /// <summary>
-        /// Attempts to recoil the device
+        /// Recoils the device that fired and updates its ammo display.
         /// </summary>
         void RecoilCommand(InputDevice device) {
-            if (device is BlamconLightgunHID) {
-                StartCoroutine(ExecuteRecoil(0));
+            if (device is BlamconLightgunHID lightgun) {
+                // Combine recoil and ammo count into a single output report, since
+                // back-to-back commands may be dropped by the device.
+                var command = BlamconHIDOutputReport.Create();
+                command.SetRecoil(1);
+                command.SetAmmo(ammoLeft);
+                lightgun.SendCommand(ref command);
             }
         }
-        /// <summary>
-        /// Sends recoil command to the device
-        /// </summary>
-        IEnumerator ExecuteRecoil(float delay)
-        {
-            yield return new WaitForSeconds(delay);
-            BlamconLightgunHID device = InputSystem.GetDevice<BlamconLightgunHID>();
-            if (device != null)
-            {
-                // recoil once
-                device.ActivateRecoil(1);
-                device.SendAmmoCount(ammoLeft);
-            }
-        }
+
         /// <summary>
         /// Converts the screen coordinates from device to World position.
         /// </summary>
@@ -111,12 +110,12 @@ namespace Samples.LightgunRecoilCommand
         Vector2 getCursorScreenPosition(InputAction.CallbackContext context)
         {
             Vector2 rawInput = default(Vector2);
-			if (context.control is Vector2Control) {
+            if (context.control is Vector2Control) {
                 rawInput = context.ReadValue<Vector2>();
-            } else if (context.control.device is Mouse) {
-                rawInput = Mouse.current.position.ReadValue();
-            } else if (context.control.device is Lightgun) {
-                rawInput = Lightgun.current.position.ReadValue();
+            } else if (context.control.device is Mouse mouse) {
+                rawInput = mouse.position.ReadValue();
+            } else if (context.control.device is Lightgun lightgun) {
+                rawInput = lightgun.position.ReadValue();
             }
             return Camera.main.ScreenToWorldPoint(new Vector3(Mathf.Clamp(rawInput.x, 0, Screen.width), Mathf.Clamp(rawInput.y, 0, Screen.height), Camera.main.nearClipPlane));
         }

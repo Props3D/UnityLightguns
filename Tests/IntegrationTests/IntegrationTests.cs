@@ -1,8 +1,10 @@
 using System.Collections;
+using System.Runtime.InteropServices;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.InputSystem.Utilities;
 using UnityEngine.Scripting;
 using UnityEngine.TestTools;
 using Blamcon.Lightguns;
@@ -32,6 +34,24 @@ using UnityEngine.InputSystem.Editor;
 
 public class IntegrationTests
 {
+    /// <summary>
+    /// Raw gamepad input report exactly as the Blamcon firmware (3.0.0) sends it over USB:
+    /// report id, 32 button bits, 4-bit hat + 4-bit pad, then X/Y/Rx/Ry as 32-bit values.
+    /// </summary>
+    [StructLayout(LayoutKind.Explicit, Size = 22)]
+    struct FirmwareGamepadReport : IInputStateTypeInfo
+    {
+        public FourCC format => new FourCC('H', 'I', 'D');
+
+        [FieldOffset(0)] public byte reportId;
+        [FieldOffset(1)] public uint buttons;
+        [FieldOffset(5)] public byte hat;
+        [FieldOffset(6)] public int x;
+        [FieldOffset(10)] public int y;
+        [FieldOffset(14)] public int rx;
+        [FieldOffset(18)] public int ry;
+    }
+
     [Preserve]
     public static void PreserveMethods()
     {
@@ -64,14 +84,124 @@ public class IntegrationTests
 
         try
         {
-            InputSystem.QueueStateEvent(lightgun, new BlamconLightgunState().WithButton(LightgunButton.BUTTON_WEST));
+            // bit 1 = buttonSouth (A); bit 0 (trigger) must stay released
+            InputSystem.QueueStateEvent(lightgun, new FirmwareGamepadReport { reportId = 1, buttons = 1u << 1 });
+            InputSystem.Update();
+
+            Assert.That(lightgun.buttonSouth.isPressed, Is.True);
+            Assert.That(lightgun.buttonWest.isPressed, Is.False);
+
+            InputSystem.QueueStateEvent(lightgun, new FirmwareGamepadReport { reportId = 1, buttons = 1u << 0 });
             InputSystem.Update();
 
             Assert.That(lightgun.buttonWest.isPressed, Is.True);
+            Assert.That(lightgun.buttonSouth.isPressed, Is.False);
         }
         finally
         {
             InputSystem.RemoveDevice(lightgun);
         }
+    }
+
+    [Test]
+    [Category("Integration")]
+    public void Integration_UnknownReportIdIsIgnored()
+    {
+        var lightgun = InputSystem.AddDevice<BlamconLightgunHID>();
+
+        try
+        {
+            InputSystem.QueueStateEvent(lightgun, new FirmwareGamepadReport { reportId = 0x10 });
+            InputSystem.Update();
+
+            Assert.That(lightgun.buttonWest.isPressed, Is.False);
+        }
+        finally
+        {
+            InputSystem.RemoveDevice(lightgun);
+        }
+    }
+
+    [Test]
+    [Category("Integration")]
+    public void Integration_HatCardinalsOnly()
+    {
+        var lightgun = InputSystem.AddDevice<BlamconLightgunHID>();
+
+        try
+        {
+            InputSystem.QueueStateEvent(lightgun, new FirmwareGamepadReport { reportId = 1, hat = 3 }); // right
+            InputSystem.Update();
+
+            Assert.That(lightgun.dpad.right.isPressed, Is.True);
+            Assert.That(lightgun.dpad.up.isPressed, Is.False);
+
+            // Diagonals are intentionally not supported.
+            InputSystem.QueueStateEvent(lightgun, new FirmwareGamepadReport { reportId = 1, hat = 2 }); // up/right
+            InputSystem.Update();
+
+            Assert.That(lightgun.dpad.up.isPressed, Is.False);
+            Assert.That(lightgun.dpad.right.isPressed, Is.False);
+        }
+        finally
+        {
+            InputSystem.RemoveDevice(lightgun);
+        }
+    }
+
+    [Test]
+    [Category("Integration")]
+    public void Integration_PositionDecodesRawCoordinates()
+    {
+        var lightgun = InputSystem.AddDevice<BlamconLightgunHID>();
+
+        try
+        {
+            InputSystem.QueueStateEvent(lightgun, new FirmwareGamepadReport { reportId = 3, x = 32767, y = 8192 });
+            InputSystem.Update();
+
+            Assert.That(lightgun.position.ReadUnprocessedValue(), Is.EqualTo(new Vector2(32767, 8192)));
+        }
+        finally
+        {
+            InputSystem.RemoveDevice(lightgun);
+        }
+    }
+
+    // Offsets are relative to the start of the HID output report (byte 0 = report id), matching
+    // handleDefaultOutputReport / handleLedOutputReport in the firmware's main.cpp.
+    static int ReportOffset<T>(string field) =>
+        Marshal.OffsetOf(typeof(T), field).ToInt32() - InputDeviceCommand.BaseCommandSize;
+
+    [Test]
+    [Category("Integration")]
+    public void OutputReport_LayoutMatchesFirmware()
+    {
+        Assert.That(Marshal.SizeOf(typeof(BlamconHIDOutputReport)) - InputDeviceCommand.BaseCommandSize, Is.EqualTo(40));
+        Assert.That(ReportOffset<BlamconHIDOutputReport>("rumble"), Is.EqualTo(15));
+        Assert.That(ReportOffset<BlamconHIDOutputReport>("ledRed"), Is.EqualTo(20));
+        Assert.That(ReportOffset<BlamconHIDOutputReport>("ledFlash"), Is.EqualTo(24));
+        // Firmware labels these the other way round, but its LED pulse is dark for the first
+        // period and lit for the second (see ezRepeatFlash in easyledv4.h).
+        Assert.That(ReportOffset<BlamconHIDOutputReport>("ledFlashOffPeriod"), Is.EqualTo(25));
+        Assert.That(ReportOffset<BlamconHIDOutputReport>("ledFlashOnPeriod"), Is.EqualTo(27));
+        Assert.That(ReportOffset<BlamconHIDOutputReport>("recoil"), Is.EqualTo(29));
+        Assert.That(ReportOffset<BlamconHIDOutputReport>("ammoRemaining"), Is.EqualTo(32));
+        Assert.That(ReportOffset<BlamconHIDOutputReport>("ammoMax"), Is.EqualTo(34));
+
+        Assert.That(ReportOffset<BlamconLEDCommand>("ledFlashOffPeriod"), Is.EqualTo(7));
+        Assert.That(ReportOffset<BlamconLEDCommand>("ledFlashOnPeriod"), Is.EqualTo(9));
+    }
+
+    [Test]
+    [Category("Integration")]
+    public void RumbleCommand_SetRumbleWithTimingsSetsPulseCount()
+    {
+        var command = BlamconRumbleCommand.Create(1);
+        command.SetRumble(3, 500, 400);
+
+        Assert.That(command.rumble, Is.EqualTo(3));
+        Assert.That(command.rumbleOnPeriod, Is.EqualTo(500));
+        Assert.That(command.rumbleOffPeriod, Is.EqualTo(400));
     }
 }

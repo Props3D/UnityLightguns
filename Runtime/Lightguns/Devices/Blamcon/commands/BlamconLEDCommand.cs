@@ -25,6 +25,8 @@ namespace Blamcon.Lightguns.LowLevel
         [FieldOffset(InputDeviceCommand.BaseCommandSize + 4)] public byte ledBlue;
         [FieldOffset(InputDeviceCommand.BaseCommandSize + 5)] public byte ledIndex;
         [FieldOffset(InputDeviceCommand.BaseCommandSize + 6)] public byte ledFlash;
+        // The firmware labels byte 7 "on" and byte 9 "off", but its LED pulse stays dark for
+        // byte 7's period and lit for byte 9's. These names reflect the actual behavior.
         [FieldOffset(InputDeviceCommand.BaseCommandSize + 7)] public short ledFlashOffPeriod;
         [FieldOffset(InputDeviceCommand.BaseCommandSize + 9)] public short ledFlashOnPeriod;
 
@@ -48,8 +50,8 @@ namespace Blamcon.Lightguns.LowLevel
         public void SetColor(int index, Color color, int pulse, int on, int off)
         {
             SetColor(index, color, pulse);
-            ledFlashOnPeriod = (short)Math.Clamp(on, 40, 2000);
-            ledFlashOffPeriod = (short)Math.Clamp(off, 40, 2000);
+            ledFlashOnPeriod = (short)Math.Clamp(on, 20, 5000);
+            ledFlashOffPeriod = (short)Math.Clamp(off, 20, 5000);
         }
 
         public static BlamconLEDCommand Create(int index, Color color) // Removed size param if it's fixed
@@ -88,8 +90,8 @@ namespace Blamcon.Lightguns.LowLevel
                 ledBlue = (byte)Mathf.Clamp(color.b * 255, 0, 255),
                 ledIndex = (byte)Math.Clamp(index, 0, 1),
                 ledFlash = (byte)Math.Clamp(flash, 0, 10),
-                ledFlashOnPeriod = (short)Math.Clamp(on, 100, 2000),
-                ledFlashOffPeriod = (short)Math.Clamp(off, 100, 2000)
+                ledFlashOnPeriod = (short)Math.Clamp(on, 20, 5000),
+                ledFlashOffPeriod = (short)Math.Clamp(off, 20, 5000)
             };
         }
     }
