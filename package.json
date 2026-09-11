@@ -1,7 +1,7 @@
 {
   "name": "com.blamcon.lightguns",
   "displayName": "Blamcon Lightguns for Unity",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "unity": "6000.0",
   "description": "A new add-on that extends Unity's InputSystem to support Blamcon Lightguns.",
   "keywords": [

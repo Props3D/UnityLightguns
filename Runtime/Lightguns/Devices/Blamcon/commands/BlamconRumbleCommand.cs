@@ -34,8 +34,9 @@ namespace Blamcon.Lightguns.LowLevel
         }
         public void SetRumble(int pulse, int on, int off)
         {
-            rumbleOnPeriod = (short)Math.Clamp(on, 100, 2000);
-            rumbleOffPeriod = (short)Math.Clamp(off, 100, 2000);
+            SetRumble(pulse);
+            rumbleOnPeriod = (short)Math.Clamp(on, 100, 2400);
+            rumbleOffPeriod = (short)Math.Clamp(off, 100, 2400);
         }
 
         public static BlamconRumbleCommand Create(int pulse) // Removed size param if it's fixed
@@ -54,8 +55,8 @@ namespace Blamcon.Lightguns.LowLevel
                 baseCommand = new InputDeviceCommand(Type, kSize), // Use kSize
                 reportId = kReportId,
                 rumble = (byte)Math.Clamp(pulse, 0, 10),
-                rumbleOnPeriod = (short)Math.Clamp(on, 100, 2000),
-                rumbleOffPeriod = (short)Math.Clamp(off, 100, 2000)
+                rumbleOnPeriod = (short)Math.Clamp(on, 100, 2400),
+                rumbleOffPeriod = (short)Math.Clamp(off, 100, 2400)
             };
         }
     }

@@ -6,7 +6,9 @@ An extension package to the [Unity Platform](https://unity.com/products/unity-pl
 
 The current version of Blamcon Lightguns for Unity package requires Unity 6 and Unity Input System 1.14 to compile and run.
 
-> NOTE: Blamcon device firmware has to be on 1.0.16 or greater.
+> NOTE: Blamcon device firmware has to be on 1.0.16 or greater. Verified against the release-3.0 firmware (3.0.0); the HID input and output report formats are unchanged since 2.0.
+>
+> The lightgun must be set to Gamepad mode and connected over USB. Force feedback (HID output reports) is not available over Bluetooth.
 
 ## Getting Started
 
