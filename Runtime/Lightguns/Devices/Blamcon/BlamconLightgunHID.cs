@@ -46,6 +46,7 @@ namespace Blamcon.Lightguns.LowLevel
         // Define the raw data field. Mapping D-pad directions will happen in the class.
         [FieldOffset(5)]
         [InputControl(name = "dpad", layout = "Dpad", usage = "Hatswitch", displayName = "D-Pad", offset = 5, format = "BIT", sizeInBits = 4)] // sizeInBits should match the data size used for dpad
+        // Diagonal hat values (2, 4, 6, 8) are intentionally not supported and map to no direction.
         [InputControl(name = "dpad/up", layout = "DiscreteButton", offset = 0, bit = 0, format = "BIT", sizeInBits = 4, parameters = "minValue=1,maxValue=1")]
         [InputControl(name = "dpad/right", layout = "DiscreteButton", offset = 0, bit = 0, format = "BIT", sizeInBits = 4, parameters = "minValue=3,maxValue=3")]
         [InputControl(name = "dpad/down", layout = "DiscreteButton", offset = 0, bit = 0, format = "BIT", sizeInBits = 4, parameters = "minValue=5,maxValue=5")]
@@ -169,12 +170,9 @@ namespace Blamcon.Lightguns
             if (stateEvent->stateFormat != LightgunHIDInputReport.kFormat || size < sizeof(LightgunHIDInputReport))
                 return false; // skip unrecognized state events otherwise they will corrupt control states
 
-            if (size < sizeof(LightgunHIDInputReport))
-                return false;
-
             var binaryData = (byte*)stateEvent->state;
 
-            // report id
+            // report id - firmware uses 1 (P1), 3 (P2), 4 (P3), 5 (P4)
             switch (binaryData[0])
             {
                 // normal USB report
@@ -184,19 +182,19 @@ namespace Blamcon.Lightguns
                 case 4:
                 case 5:
                 {
-                    // if (size < sizeof(LightgunHIDInputReport))
-                    //     return false;
                     var data = ((LightgunHIDInputReport*)(binaryData))->ToHIDInputReport();
                     *((BlamconLightgunState*)stateEvent->state) = data;
                     stateEvent->stateFormat = BlamconLightgunState.kFormat;
                     return true;
                 }
-                default: {
-                    var data = ((LightgunHIDInputReport*)(binaryData))->EmptyHIDInputReport();
-                    *((BlamconLightgunState*)stateEvent->state) = data;
-                    stateEvent->stateFormat = BlamconLightgunState.kFormat;
-                    return true; // skip unrecognized reportId
-                }
+                // Unrecognized report ids are dropped, so the device keeps its last good state.
+                // Previously this wrote a replacement state from LightgunHIDInputReport.EmptyHIDInputReport()
+                // (reportId = 0x05, buttons = 0x01, hat = 0, position/secondaryMotion = zero), which
+                // registered a phantom buttonWest (trigger) press, released held buttons and snapped the
+                // cursor to (0,0). To restore a "reset to neutral" behavior instead, write a zeroed
+                // BlamconLightgunState here (buttons = 0) and return true.
+                default:
+                    return false; // skip unrecognized reportId
             }
         }
 
@@ -384,6 +382,9 @@ namespace Blamcon.Lightguns
         }
 
 
+        // Raw gamepad input report as sent by the firmware (GamepadReport in gamepad.h).
+        // Axes are 32-bit on the wire with a logical range of [0, 32767]; only the low
+        // 16 bits are read here, which is lossless for that range.
         [StructLayout(LayoutKind.Explicit, Size = 22)]
         internal struct LightgunHIDInputReport
         {
@@ -399,17 +400,6 @@ namespace Blamcon.Lightguns
             [FieldOffset(18)] public short rightStickY;
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public BlamconLightgunState EmptyHIDInputReport()
-            {
-                return new BlamconLightgunState
-                {
-                    reportId = 0x05,
-                    buttons = 0x01,
-                    hat = 0,
-                    position = Vector2.zero,
-                    secondaryMotion = Vector2.zero
-                };
-            }
             public BlamconLightgunState ToHIDInputReport()
             {
                 return new BlamconLightgunState

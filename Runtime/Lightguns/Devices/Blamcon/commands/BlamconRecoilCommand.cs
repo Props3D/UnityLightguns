@@ -33,8 +33,8 @@ namespace Blamcon.Lightguns.LowLevel
         }
         public void SetRecoil(int pulse, int on, int off) {
             SetRecoil(pulse);
-            recoilOnPeriod = (byte)Math.Clamp(on, 15, 255);
-            recoilOffPeriod = (byte)Math.Clamp(off, 15, 255);
+            recoilOnPeriod = (byte)Math.Clamp(on, 15, 200);
+            recoilOffPeriod = (byte)Math.Clamp(off, 45, 200);
         }
 
         public static BlamconRecoilCommand Create(int pulse) // Removed size param if it's fixed
@@ -53,8 +53,8 @@ namespace Blamcon.Lightguns.LowLevel
                 baseCommand = new InputDeviceCommand(Type, kSize), // Use kSize
                 reportId = kReportId,
                 recoil = (byte)Math.Clamp(pulse, 0, 10),
-                recoilOnPeriod = (byte)Math.Clamp(on, 15, 255),
-                recoilOffPeriod = (byte)Math.Clamp(off, 15, 255)
+                recoilOnPeriod = (byte)Math.Clamp(on, 15, 200),
+                recoilOffPeriod = (byte)Math.Clamp(off, 45, 200)
             };
         }
     }

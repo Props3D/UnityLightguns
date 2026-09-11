@@ -45,6 +45,7 @@ namespace Blamcon.Lightguns.LowLevel
         // Define the raw data field. Mapping D-pad directions will happen in the class.
         [FieldOffset(5)]
         [InputControl(name = "dpad", layout = "Dpad", usage = "Hatswitch", displayName = "D-Pad", offset = 5, format = "BIT", sizeInBits = 4)] // sizeInBits should match the data size used for dpad
+        // Diagonal hat values (2, 4, 6, 8) are intentionally not supported and map to no direction.
         [InputControl(name = "dpad/up", layout="DiscreteButton", offset = 0, bit = 0, format = "BIT", sizeInBits = 4, parameters = "minValue=1,maxValue=1")]
         [InputControl(name = "dpad/right", layout="DiscreteButton", offset = 0, bit = 0, format = "BIT", sizeInBits = 4, parameters = "minValue=3,maxValue=3")]
         [InputControl(name = "dpad/down", layout="DiscreteButton", offset = 0, bit = 0, format = "BIT", sizeInBits = 4, parameters = "minValue=5,maxValue=5")]

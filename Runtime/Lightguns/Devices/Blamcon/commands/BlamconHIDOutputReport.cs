@@ -47,6 +47,8 @@ namespace Blamcon.Lightguns.LowLevel
 
         [FieldOffset(InputDeviceCommand.BaseCommandSize + 23)] public byte ledIndex;
         [FieldOffset(InputDeviceCommand.BaseCommandSize + 24)] public byte ledFlash;
+        // The firmware labels byte 25 "on" and byte 27 "off", but its LED pulse stays dark for
+        // byte 25's period and lit for byte 27's. These names reflect the actual behavior.
         [FieldOffset(InputDeviceCommand.BaseCommandSize + 25)] public short ledFlashOffPeriod;
         [FieldOffset(InputDeviceCommand.BaseCommandSize + 27)] public short ledFlashOnPeriod;
 
@@ -84,8 +86,8 @@ namespace Blamcon.Lightguns.LowLevel
         public void SetRumble(int pulse, int on, int off)
         {
             SetRumble(pulse);
-            rumbleOnPeriod = (short)Math.Clamp(on, 100, 2000);
-            rumbleOffPeriod = (short)Math.Clamp(off, 100, 2000);
+            rumbleOnPeriod = (short)Math.Clamp(on, 100, 2400);
+            rumbleOffPeriod = (short)Math.Clamp(off, 100, 2400);
         }
         public void SetColor(int index, Color color)
         {
@@ -103,8 +105,8 @@ namespace Blamcon.Lightguns.LowLevel
         public void SetColor(int index, Color color, int pulse, int on, int off)
         {
             SetColor(index, color, pulse);
-            ledFlashOnPeriod = (short)Math.Clamp(on, 40, 2000);
-            ledFlashOffPeriod = (short)Math.Clamp(off, 40, 2000);
+            ledFlashOnPeriod = (short)Math.Clamp(on, 20, 5000);
+            ledFlashOffPeriod = (short)Math.Clamp(off, 20, 5000);
         }
         public void SetRecoil(int pulse) {
             enableRecoilUpdate = 1;
@@ -112,13 +114,13 @@ namespace Blamcon.Lightguns.LowLevel
         }
         public void SetRecoil(int pulse, int on, int off) {
             SetRecoil(pulse);
-            recoilOnPeriod = (byte)Math.Clamp(on, 15, 255);
-            recoilOffPeriod = (byte)Math.Clamp(off, 15, 255);
+            recoilOnPeriod = (byte)Math.Clamp(on, 15, 200);
+            recoilOffPeriod = (byte)Math.Clamp(off, 45, 200);
         }
         public void SetAmmo(int remaining)
         {
             enableAmmoUpdate = 1;
-            ammoRemaining = (byte)remaining;
+            ammoRemaining = (byte)Math.Clamp(remaining, 0, 255);
             ammoUsed = 0;
             ammoMax = 0;
         }
