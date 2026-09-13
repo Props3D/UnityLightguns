@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 Due to package verification, the latest version below is the unpublished version and the date is meaningless.
 however, it has to be formatted properly to pass verification tests.
 
+## [Unreleased]
+
+### Changed
+- Documentation updated for current release-3.0 firmware: force feedback now works over Bluetooth
+  Classic as well as USB, report `0x23` is declared in the HID descriptor, and the 16-bit feedback
+  periods are read in full (periods that are exact multiples of 256 ms were dropped on 3.0.0 and
+  earlier). The single-component output reports are still accepted only at their exact declared
+  size, so `BlamconHIDOutputReport` (`0x10`) remains the recommended command.
+
 ## [1.1.0] - 2026-09-12
 
 Verified compatibility with Blamcon release-3.0 firmware (3.0.0).

@@ -8,8 +8,10 @@ namespace Blamcon.Lightguns.LowLevel
     // BlamconAmmoCommand remains the same as it defines an output command.
     // Ensure its size and offsets are correct for your device's output report.
     //
-    // NOTE: As of firmware 3.0.0 report 0x23 is handled by the firmware but is not declared
-    // in the gamepad HID report descriptor, so the host HID stack (e.g. Windows) may reject it.
+    // NOTE: report 0x23 is declared in the HID report descriptor only in current 3.0 firmware;
+    // on 3.0.0 and earlier the host HID stack (e.g. Windows) may reject it. The firmware also
+    // accepts this report only at its exact declared size, while Unity pads output commands to
+    // the device's largest output report, so those writes are ignored.
     // Prefer BlamconLightgunHID.SendAmmoCount(), which uses the combined 0x10 output report.
     [StructLayout(LayoutKind.Explicit, Size = kSize)]
     public struct BlamconAmmoCommand : IBlamconCommand
