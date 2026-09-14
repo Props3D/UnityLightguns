@@ -225,54 +225,6 @@ namespace Blamcon.Lightguns
                 Debug.LogError($"Failed to send command to {name}. Error: {result}");
             return result >= 0;
         }
-        /// <summary>
-        /// Use to send recoil command to this specific device.
-        /// </summary>
-        /// <param name="command">The recoil command.</param>
-        public bool SendCommand(ref BlamconRecoilCommand command)
-        {
-            // Send the command to the device
-            long result = ExecuteCommand(ref command);
-            if (result < 0)
-                Debug.LogError($"Failed to send command to {name}. Error: {result}");
-            return result >= 0;
-        }
-        /// <summary>
-        /// Use to send recoil command to this specific device.
-        /// </summary>
-        /// <param name="command">The rumble command.</param>
-        public bool SendCommand(ref BlamconRumbleCommand command)
-        {
-            // Send the command to the device
-            long result = ExecuteCommand(ref command);
-            if (result < 0)
-                Debug.LogError($"Failed to send command to {name}. Error: {result}");
-            return result >= 0;
-        }
-        /// <summary>
-        /// Use to send recoil command to this specific device.
-        /// </summary>
-        /// <param name="command">The LED command.</param>
-        public bool SendCommand(ref BlamconLEDCommand command)
-        {
-            // Send the command to the device
-            long result = ExecuteCommand(ref command);
-            if (result < 0)
-                Debug.LogError($"Failed to send command to {name}. Error: {result}");
-            return result >= 0;
-        }
-        /// <summary>
-        /// Use to send ammo command to this specific device.
-        /// </summary>
-        /// <param name="command">The ammo command.</param>
-        public bool SendCommand(ref BlamconAmmoCommand command)
-        {
-            // Send the command to the device
-            long result = ExecuteCommand(ref command);
-            if (result < 0)
-                Debug.LogError($"Failed to send command to {name}. Error: {result}");
-            return result >= 0;
-        }
 
         /// <inheritdoc />
         public bool EnableFFBControl(bool recoil = true, bool rumble = true, bool led = true, bool ammo = false)

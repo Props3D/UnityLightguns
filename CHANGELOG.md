@@ -17,6 +17,25 @@ however, it has to be formatted properly to pass verification tests.
   earlier). The single-component output reports are still accepted only at their exact declared
   size, so `BlamconHIDOutputReport` (`0x10`) remains the recommended command.
 
+### Removed
+- **Breaking:** the single-component output commands `BlamconRecoilCommand`, `BlamconRumbleCommand`,
+  `BlamconLEDCommand` and `BlamconAmmoCommand`, and their `BlamconLightgunHID.SendCommand` overloads.
+  They never reached the gun: Unity pads every HID output command to the device's largest output report
+  (40 bytes), and the firmware accepts reports `0x20`-`0x23` only at their exact size. Build the same
+  effect with `BlamconHIDOutputReport`, or call the `IForceFeedback` methods (`ActivateRecoil`,
+  `ActivateRumble`, `ActivateLED`, `SendAmmoCount`):
+
+  | 1.x | 2.0 |
+  |---|---|
+  | `BlamconRecoilCommand.Create(pulses[, on, off])` | `var report = BlamconHIDOutputReport.Create();` then `report.SetRecoil(pulses[, on, off])` |
+  | `BlamconRumbleCommand.Create(pulses[, on, off])` | `report.SetRumble(pulses[, on, off])` |
+  | `BlamconLEDCommand.Create(index, color[, flashes[, on, off]])` | `report.SetColor(index, color[, flashes[, on, off]])` |
+  | `BlamconAmmoCommand.Create(remaining)` | `report.SetAmmo(remaining)` |
+  | `command.EnableFFBControl(enable)` | `report.EnableFFBControl(recoil, rumble, led, ammo)`, or set that component's `enable...Update` and `enable...FFBControl` fields |
+  | `device.SendCommand(ref command)` | `device.SendCommand(ref report)` |
+
+  One report can carry several effects, which the gun handles better than separate commands sent back to back.
+
 ## [1.1.0] - 2026-09-12
 
 Verified compatibility with Blamcon release-3.0 firmware (3.0.0).
