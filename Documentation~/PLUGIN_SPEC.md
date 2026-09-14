@@ -1,11 +1,13 @@
 # Blamcon Lightguns for Unity — package specification
 
-Draft 2, 2026-09-14. Package `com.blamcon.lightguns` 1.1.0. Target: Unity 6000.0+, Input System 1.14,
-Windows. Companion to the Unreal plugin (`UnrealLightguns/docs/PLUGIN_SPEC.md`).
+Draft 3, 2026-09-14. Package `com.blamcon.lightguns`, targeting **2.0.0** on branch `release-2.0`
+(current release 1.1.0). Target: Unity 6000.0+, Input System 1.14, Windows. Companion to the Unreal
+plugin (`UnrealLightguns/docs/PLUGIN_SPEC.md`).
 
 Unlike the Unreal plugin, this package is already released. This spec describes what is built, what
-is known to be wrong or missing, and the roadmap. Public API changes follow semver: additive in minor
-versions, deprecate before removing.
+is known to be wrong or missing, and the 2.0 roadmap. 2.0 is a major version, so it takes breaking
+changes the 1.x line couldn't: the single-component commands are removed outright rather than
+deprecated (§6).
 
 ---
 
@@ -29,7 +31,7 @@ mode, **through the same interface**, and games that can be built and tested on 
 | 6 | Firmware services **one output report at a time**, and ignores a new recoil while pulses are cycling. | Combine effects into one `0x10` report (`BlamconHIDOutputReport`, already public), and pace recoil like a fire rate. |
 | 7 | Desktop Unity has **one `Mouse` device** for all mice ("We do not yet support distinguishing input from multiple pointers", `KnownLimitations.md`). | Guns in mouse mode share one cursor: aim is effectively single-player. Feedback can still target each gun, because each gun's vendor collection is a separate device with its own PID. |
 | 8 | After a firmware reflash, Unity kept devices from the gun's previous firmware listed until the Editor restarted; `HIDO` to those returns `-1` (seen on hardware). | Feedback resolves to the **most recently added** matching device, never the first in the list. |
-| 9 | Raw reports arrive as state events in format `'HID '`. The package decodes them in place into `BlamconLightgunState`, which **also** uses `'HID '`. | A decoded state queued by code (tests, replays) is decoded a second time. Tests currently work around this by queueing raw firmware reports. |
+| 9 | Raw reports arrive as state events in format `'HID '`. The package decodes them in place into `BlamconLightgunState`, which **also** uses `'HID '`. | A decoded state queued by code (tests, replays) is decoded a second time. Tests work around this by queueing raw firmware reports. Fix deferred to 3.0 (§5). |
 
 ## 3. Architecture
 
@@ -46,7 +48,7 @@ Runtime/Lightguns/
     ├─ BlamconLightgunHID.cs        4 layouts (P1–P4), raw report decode, IForceFeedback, SendCommand
     └─ commands/
         ├─ BlamconHIDOutputReport   0x10, 40 bytes — the recommended command
-        └─ BlamconRecoil/Rumble/LED/AmmoCommand   0x20–0x23 — unreliable (constraint 4)
+        └─ BlamconRecoil/Rumble/LED/AmmoCommand   0x20–0x23 — unreliable (constraint 4); removed in 2.0
 Samples~/  LightgunCrosshair, LightgunRecoilCommand
 Tests/IntegrationTests/  6 tests: raw decode, unknown report IDs, cardinal d-pad, position, 0x10 layout, rumble
 ```
@@ -60,7 +62,10 @@ Runtime/Lightguns/
 │   ├─ BlamconMouseModeDevice.cs    internal: the mouse-mode vendor collection; implements IForceFeedback
 │   └─ BlamconForceFeedback.cs      internal: the IForceFeedback implementation both devices share
 └─ Feedback/
-    └─ LightgunSession.cs           take control on play, release on quit / focus loss / play-mode exit
+    └─ LightgunSession.cs           opt-in component: take control on play, release on quit / focus loss / play-mode exit
+
+Removed in 2.0: BlamconRecoilCommand, BlamconRumbleCommand, BlamconLEDCommand, BlamconAmmoCommand
+and their SendCommand overloads.
 ```
 
 **`IForceFeedback` stays the one feedback interface.** Mouse mode doesn't get its own API: a gun in
@@ -160,9 +165,10 @@ Raw 22-byte report (firmware `GamepadReport`), decoded in `BlamconLightgunHID.Pr
 
 ### Planned
 
-* **Give the decoded state its own format code** (e.g. `'LGVS'`, already commented out in the source)
-  so queued decoded states aren't decoded twice (constraint 9). Needs a hardware check: raw events must
-  still arrive and convert.
+* **Decoded state format code — deferred to 3.0.** Giving `BlamconLightgunState` its own format code
+  (e.g. `'LGVS'`, already commented out in the source) would stop queued decoded states being decoded
+  twice (constraint 9), but it would break saved input recordings. Until then, tests queue raw firmware
+  reports.
 * **Mouse parity sample.** One `Aim` action bound to `<Lightgun>/position` and `<Mouse>/position`, one
   `Fire` action bound to `<Lightgun>/buttonWest` and `<Mouse>/leftButton`, in one Input Actions asset.
   The Input System supports this natively; the current samples only partly do it.
@@ -208,15 +214,18 @@ Rules:
   batching; combining effects stays explicit through `BlamconHIDOutputReport` (constraint 6).
 * **Routing.** A player resolves to its gamepad device, else its mouse-mode device; among duplicates,
   the most recently added (constraint 8).
-* **Session lifecycle (`LightgunSession`).** On play start: release, then take control of recoil,
+* **Session lifecycle (`LightgunSession`, opt-in).** A component the developer adds; nothing takes
+  control automatically, because that would stop recoil firing on the trigger in games that never took
+  control before upgrading. On play start: release, then take control of recoil,
   rumble and LED. On `Application.quitting`, focus loss (`Application.focusChanged`) and Editor
   play-mode exit (`EditorApplication.playModeStateChanged`): release. Ammo is left to the game, because
   taking ammo control zeroes the display; send the starting count in the same report as taking it.
 * **Size from the descriptor.** Build commands with `hidDescriptor.outputReportSize`, as Unity's own
   DualShock code does, falling back to 40.
-* **Deprecate `0x20`–`0x23`.** Mark `BlamconRecoilCommand`, `BlamconRumbleCommand`, `BlamconLEDCommand`
-  and `BlamconAmmoCommand` `[Obsolete]` with a message pointing at `BlamconHIDOutputReport`; remove in
-  the next major version.
+* **Remove `0x20`–`0x23` in 2.0.** Delete `BlamconRecoilCommand`, `BlamconRumbleCommand`,
+  `BlamconLEDCommand`, `BlamconAmmoCommand` and their `SendCommand` overloads. They don't work on the
+  wire, so removal turns silent no-ops into compile errors that point at the fix: build the same effect
+  with `BlamconHIDOutputReport`. The upgrade notes include a mapping from each removed `Create` call.
 * **Samples** switch to `GetForceFeedback(player)`. In mouse mode a shot arrives from `Mouse`, which
   doesn't say which gun fired, so single-player mouse-mode samples target player 0.
 
@@ -240,22 +249,35 @@ Windows users running HidHide must whitelist the game.
 
 ## 9. Milestones
 
-1. **Mouse-mode feedback through `IForceFeedback`.** `BlamconMouseModeDevice` with the vendor-collection
-   matchers, the shared feedback implementation, `BlamconLightgunHID.GetForceFeedback(player)` and
+Build order on `release-2.0`. Each step ends with the EditMode tests passing in the Unity Test Runner on
+Windows.
+
+1. **2.0 API cleanup.** First, tests that record the exact `HIDO` bytes every `IForceFeedback` call
+   sends today (`InputSystem.onDeviceCommand`). Then remove the `0x20`–`0x23` commands, size commands
+   from `hidDescriptor.outputReportSize`, and move the feedback code the device repeats in each method
+   into the internal `BlamconForceFeedback`.
+   *Exit: every `IForceFeedback` call sends the same bytes as in 1.1.0, and the tests pass.*
+2. **Mouse-mode feedback through `IForceFeedback`.** `BlamconMouseModeDevice` with the
+   vendor-collection matchers, `BlamconLightgunHID.GetForceFeedback(player)` and
    `SendCommand(player, ref report)` with gamepad-first, newest-device routing, and docs for the
    firmware requirement.
    *Exit: the same `IForceFeedback` calls fire recoil, rumble, LED and ammo on a gun in gamepad mode and
    on a gun in mouse mode, over USB and Bluetooth, while the system mouse aims and fires.*
-2. **Session lifecycle and samples.** `LightgunSession`; samples rewritten around
+3. **Session lifecycle and samples.** Opt-in `LightgunSession`; samples rewritten around
    `GetForceFeedback(player)` with mouse parity.
-   *Exit: two guns in one scene, feedback reaches the right gun, and stopping play mode returns recoil
-   to firing on the trigger.*
-3. **Correctness debt.** Separate decoded-state format code, commands sized from the descriptor,
-   single-component commands deprecated.
-   *Exit: a test can queue `BlamconLightgunState.WithButton(...)` directly, and all existing tests pass.*
+   *Exit: two guns in one scene, feedback reaches the right gun, and stopping play mode with a
+   `LightgunSession` in the scene returns recoil to firing on the trigger.*
+4. **Release.** Migrate the shooting gallery and ARC, upgrade notes, `package.json` 2.0.0, CHANGELOG,
+   tag `2.0.0`. Mouse-mode feedback needs `release-3.0` firmware with the vendor collection, so 2.0.0
+   ships with or after that firmware release.
+
+Before merging `release-2.0` into `main`: pin ARC and the shooting gallery to `#1.1.0`. Both install the
+package from `main` with no version, so a merge would otherwise pull 2.0 into them on their next
+package refresh.
 
 ### Future milestones (deferred)
 
+* **Decoded state format code** (3.0), see §5.
 * **Device info through a native plugin** reading `0x50`/`0x51`, possibly sharing the Unreal plugin's
   engine-free `LightgunCore`. Gives version, board, feedback availability and leftover-control release.
 * **Serial feedback** for other brands, behind `IForceFeedback`. Check `System.IO.Ports` availability
@@ -266,7 +288,10 @@ Windows users running HidHide must whitelist the game.
 
 Automated (no hardware; `InputSystem.onDeviceCommand` intercepts `HIDO` so tests can assert the exact
 bytes sent):
-* Existing 6 tests stay green.
+* Existing tests stay green, except the parts covering the removed commands
+  (`RumbleCommand_SetRumbleWithTimingsSetsPulseCount`, and the `BlamconLEDCommand` offsets in
+  `OutputReport_LayoutMatchesFirmware`), which are deleted with them.
+* Every `IForceFeedback` call sends the same `HIDO` bytes after the milestone 1 refactor as before it.
 * A vendor-collection device description creates `BlamconMouseModeDevice`, which is **not** a
   `Lightgun`; the gamepad layouts don't claim it, and a `<Lightgun>/position` binding doesn't resolve
   to it.
@@ -274,7 +299,8 @@ bytes sent):
   `BlamconMouseModeDevice`.
 * `GetForceFeedback(player)` prefers the gamepad device over the mouse-mode device, picks the newest of
   two same-PID devices, and returns `null` for a player with neither.
-* Play-mode exit and `Application.quitting` send a release report.
+* With a `LightgunSession` present, play-mode exit and `Application.quitting` send a release report;
+  without one, nothing is sent.
 
 On hardware:
 * Gamepad mode, USB and Bluetooth: recoil, rumble, LED, ammo; aim reaches every screen edge.
@@ -295,12 +321,13 @@ Decided (2026-09-14):
 * **Mouse-mode feedback goes through `IForceFeedback`,** not a separate API (§4.1).
 * **Older firmware in mouse mode:** Unity doesn't see the gun; documented, not detected (§4.3).
 * **No `IDualMotorRumble`:** the gun's feedback doesn't fit a two-motor rumble API.
+* **2.0 removes the single-component commands** rather than deprecating them (§6).
+* **Decoded state format code deferred to 3.0** (§5).
+* **`LightgunSession` is opt-in** (§6).
+* **Tests run in the Unity Test Runner on Windows.** The consuming test project needs
+  `"testables": ["com.blamcon.lightguns"]` in `Packages/manifest.json` for the package's tests to appear.
 
 Still open:
 * **How long does `HIDO` block,** over USB and over Bluetooth? Decides whether commands need spacing.
 * **Rumble and ammo through the vendor collection** — only recoil and LED were tested.
-* **Should `LightgunSession` be automatic** (created on load) **or opt-in** (a component the developer
-  adds)? Automatic is friendlier; opt-in avoids surprising games that already manage control.
-* **Does changing the decoded-state format code break anything saved or recorded** (input recordings,
-  `InputEventTrace` files)?
 * **Emulators and front ends with the extra collection** — shared with the Unreal plugin; unchecked.
