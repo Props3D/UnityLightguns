@@ -62,7 +62,8 @@ Runtime/Lightguns/
 │   ├─ BlamconMouseModeDevice.cs    internal: the mouse-mode vendor collection; implements IForceFeedback
 │   └─ BlamconForceFeedback.cs      internal: the IForceFeedback implementation both devices share
 └─ Feedback/
-    └─ LightgunSession.cs           opt-in component: take control on play, release on quit / focus loss / play-mode exit
+    ├─ LightgunSession.cs           opt-in component: take control while enabled, release when disabled or unfocused
+    └─ LightgunSessionController.cs internal: the session logic, testable against chosen devices
 
 Removed in 2.0: BlamconRecoilCommand, BlamconRumbleCommand, BlamconLEDCommand, BlamconAmmoCommand
 and their SendCommand overloads.
@@ -169,9 +170,9 @@ Raw 22-byte report (firmware `GamepadReport`), decoded in `BlamconLightgunHID.Pr
   (e.g. `'LGVS'`, already commented out in the source) would stop queued decoded states being decoded
   twice (constraint 9), but it would break saved input recordings. Until then, tests queue raw firmware
   reports.
-* **Mouse parity sample.** One `Aim` action bound to `<Lightgun>/position` and `<Mouse>/position`, one
-  `Fire` action bound to `<Lightgun>/buttonWest` and `<Mouse>/leftButton`, in one Input Actions asset.
-  The Input System supports this natively; the current samples only partly do it.
+* **Mouse parity.** The samples' Input Actions asset already binds every action to both the lightgun and
+  the mouse (Fire to `<LightGun>/buttonWest` and `<Mouse>/leftButton`, Move and Point to both positions,
+  and so on), so a scene built and tested on a mouse works unchanged with lightguns.
 
 ## 6. Feedback
 
@@ -215,10 +216,21 @@ Rules:
   the most recently added (constraint 8).
 * **Session lifecycle (`LightgunSession`, opt-in).** A component the developer adds; nothing takes
   control automatically, because that would stop recoil firing on the trigger in games that never took
-  control before upgrading. On play start: release, then take control of recoil,
-  rumble and LED. On `Application.quitting`, focus loss (`Application.focusChanged`) and Editor
-  play-mode exit (`EditorApplication.playModeStateChanged`): release. Ammo is left to the game, because
-  taking ammo control zeroes the display; send the starting count in the same report as taking it.
+  control before upgrading.
+  * Takes control in `OnEnable`, and of guns that connect or reconnect while enabled
+    (`InputSystem.onDeviceChange`).
+  * Hands control back in `OnDisable`, which Unity calls when the component is disabled or destroyed,
+    on leaving play mode and on quitting, so no Editor-only hooks are needed.
+  * With **Release On Focus Loss** (default on), hands control back in `OnApplicationFocus(false)` and
+    takes it again when focus returns.
+  * Sends one report per gun per transition, never a release immediately followed by a take: the gun
+    handles one report at a time.
+  * Touches only the ticked components (recoil, rumble and LED by default). It can't use
+    `EnableFFBControl`, which always sets all four components and so would release ammo control a game
+    is holding. Ammo is off by default because taking ammo control zeroes the display.
+  * Commands go to each player's routed device only, so stale duplicates never get them.
+  * The logic lives in the internal `LightgunSessionController`, which takes the device list as a
+    parameter so tests can run it without touching real guns.
 * **Commands stay a fixed 40 bytes.** Unity's DualShock code sizes commands from
   `hidDescriptor.outputReportSize` because that controller's report size differs between USB and
   Bluetooth. Blamcon's doesn't: the firmware requires exactly 40 bytes for `0x10`, and the command
@@ -265,8 +277,9 @@ Windows.
    firmware requirement.
    *Exit: the same `IForceFeedback` calls fire recoil, rumble, LED and ammo on a gun in gamepad mode and
    on a gun in mouse mode, over USB and Bluetooth, while the system mouse aims and fires.*
-3. **Session lifecycle and samples.** Opt-in `LightgunSession`; samples rewritten around
-   `GetForceFeedback(player)` with mouse parity.
+3. **Session lifecycle and samples.** Opt-in `LightgunSession`; `BlamconLightgunHID.playerIndex` made
+   public; the trigger sample sends feedback to the player whose gun fired, with a configurable player
+   for mouse clicks, and relies on `LightgunSession` for recoil control.
    *Exit: two guns in one scene, feedback reaches the right gun, and stopping play mode with a
    `LightgunSession` in the scene returns recoil to firing on the trigger.*
 4. **Release.** Migrate the shooting gallery and ARC, upgrade notes, `package.json` 2.0.0, CHANGELOG,
@@ -301,8 +314,12 @@ bytes sent):
   `BlamconMouseModeDevice`.
 * `GetForceFeedback(player)` prefers the gamepad device over the mouse-mode device, picks the newest of
   two same-PID devices, and returns `null` for a player with neither.
-* With a `LightgunSession` present, play-mode exit and `Application.quitting` send a release report;
-  without one, nothing is sent.
+* The session controller takes recoil, rumble and LED on every player's gun and leaves ammo untouched;
+  takes ammo only when asked; touches only the chosen components; hands control back on end; releases
+  and retakes on pause and resume; takes control of a gun added mid-session; and sends nothing to stale
+  duplicates or guns without a player index.
+* On hardware: with a `LightgunSession` in the scene, leaving play mode returns recoil to firing on the
+  trigger; alt-tabbing away does the same and alt-tabbing back takes control again.
 
 On hardware:
 * Gamepad mode, USB and Bluetooth: recoil, rumble, LED, ammo; aim reaches every screen edge.

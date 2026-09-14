@@ -118,3 +118,22 @@ report.SetRecoil(1);
 report.SetAmmo(ammoLeft);
 BlamconLightgunHID.SendCommand(0, ref report);
 ```
+
+#### Lightgun Session
+
+Until a game takes control, a Blamcon lightgun drives its own feedback: recoil fires on every trigger pull, and the LED and ammo display follow the gun's settings. Add a **Lightgun Session** component to a scene (**Add Component → Blamcon → Lightgun Session**) to take control for as long as the component is enabled.
+
+* It takes control of recoil, rumble and the LED on every connected gun, in Gamepad or mouse mode, and of guns that connect later.
+* It hands control back when the component is disabled or destroyed, when play mode stops, and when the application quits, so a gun is never left under game control.
+* With **Release On Focus Loss** ticked (the default), it also hands control back while the application doesn't have focus, and takes it again when focus returns.
+* Only ticked components are touched. Taking or handing back control turns the LED off and stops rumble.
+* **Ammo** is off by default, because taking ammo control zeroes the display. To manage the display yourself, take ammo control and send the starting count in one report:
+
+```CSharp
+var report = BlamconHIDOutputReport.Create();
+report.EnableAmmoFFBControl(true);
+report.SetAmmo(99);
+BlamconLightgunHID.SendCommand(0, ref report);
+```
+
+Keep one enabled session at a time; two send every command twice. To find which player a Gamepad-mode gun belongs to, use `BlamconLightgunHID.playerIndex` (0 is player 1). A gun in mouse mode arrives as Unity's `Mouse`, which can't identify the gun.

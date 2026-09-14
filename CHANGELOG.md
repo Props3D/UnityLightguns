@@ -22,9 +22,16 @@ however, it has to be formatted properly to pass verification tests.
   if a gun is listed twice (Unity can keep a gun's old devices listed after a firmware update).
 - `BlamconLightgunHID.SendCommand(player, ref report)` sends a combined `BlamconHIDOutputReport` to a
   player's gun in either mode.
+- `LightgunSession`, an opt-in component that takes control of recoil, rumble and the LED on every gun
+  while it is enabled, including guns that connect later, and hands control back when disabled,
+  destroyed, when play mode stops, on quit and (by default) while the application lacks focus. It touches
+  only the components it is set to, so it never releases ammo control a game is holding.
 - `BlamconLightgunHID.playerIndex` is public, so games can tell which player's gun fired.
 
 ### Changed
+- The Lightgun Recoil Command sample sends feedback to the player whose gun fired, with a configurable
+  player for mouse clicks, and relies on `LightgunSession` for recoil control instead of taking control
+  itself. It no longer has an `EnableForcedFeedbackControl` method.
 - Documentation updated for current release-3.0 firmware: force feedback now works over Bluetooth
   Classic as well as USB, report `0x23` is declared in the HID descriptor, and the 16-bit feedback
   periods are read in full (periods that are exact multiples of 256 ms were dropped on 3.0.0 and
