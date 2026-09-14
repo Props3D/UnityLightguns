@@ -97,12 +97,14 @@ public class MouseModeFeedbackTests
 
     [Test]
     [Category("MouseMode")]
-    public void MouseModeDevice_IsNotALightgunAndHasNoControls()
+    public void MouseModeDevice_IsNotALightgunAndHasOnlyAPlaceholderControl()
     {
         var device = AddMouseMode(0);
 
         Assert.That(device, Is.Not.InstanceOf<Lightgun>());
-        Assert.That(device.allControls, Is.Empty);
+        Assert.That(device.allControls.Count, Is.EqualTo(1));
+        Assert.That(device.allControls[0].noisy, Is.True);
+        Assert.That(device.allControls[0].synthetic, Is.True);
     }
 
     [Test]

@@ -13,8 +13,9 @@ however, it has to be formatted properly to pass verification tests.
 ### Added
 - Force feedback for guns in **mouse mode**, through the same `IForceFeedback` interface. Firmware with
   mouse-mode feedback adds a vendor-defined HID collection (usage page `0xFF00`, usage `0x01`); the
-  package matches it as a feedback-only device that has no controls and isn't a `Lightgun`, so it never
-  appears in lightgun bindings. Aim and fire still come from Unity's `Mouse`. Older firmware in mouse mode
+  package matches it as a feedback-only device that isn't a `Lightgun`, so it never appears in lightgun
+  bindings. Its only control is a noisy, synthetic placeholder, because the Input System can't build a
+  device with no controls. Aim and fire still come from Unity's `Mouse`. Older firmware in mouse mode
   is invisible to Unity.
 - `BlamconLightgunHID.GetForceFeedback(player)` returns a player's gun as `IForceFeedback` in either mode:
   the Gamepad-mode device if there is one, otherwise the mouse-mode device, and the most recently added
