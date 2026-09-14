@@ -10,6 +10,18 @@ however, it has to be formatted properly to pass verification tests.
 
 ## [Unreleased]
 
+### Added
+- Force feedback for guns in **mouse mode**, through the same `IForceFeedback` interface. Firmware with
+  mouse-mode feedback adds a vendor-defined HID collection (usage page `0xFF00`, usage `0x01`); the
+  package matches it as a feedback-only device that has no controls and isn't a `Lightgun`, so it never
+  appears in lightgun bindings. Aim and fire still come from Unity's `Mouse`. Older firmware in mouse mode
+  is invisible to Unity.
+- `BlamconLightgunHID.GetForceFeedback(player)` returns a player's gun as `IForceFeedback` in either mode:
+  the Gamepad-mode device if there is one, otherwise the mouse-mode device, and the most recently added
+  if a gun is listed twice (Unity can keep a gun's old devices listed after a firmware update).
+- `BlamconLightgunHID.SendCommand(player, ref report)` sends a combined `BlamconHIDOutputReport` to a
+  player's gun in either mode.
+
 ### Changed
 - Documentation updated for current release-3.0 firmware: force feedback now works over Bluetooth
   Classic as well as USB, report `0x23` is declared in the HID descriptor, and the 16-bit feedback
