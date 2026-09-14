@@ -7,36 +7,48 @@ using Blamcon.Lightguns.LowLevel;
 namespace Samples.LightgunRecoilCommand
 {
     /// <summary>
-    /// This script controls the game cursor.
+    /// Shoots on the Fire action, with recoil and an ammo count on the gun that fired.
+    /// Works with guns in Gamepad mode or mouse mode, and with a plain mouse.
     /// </summary>
+    /// <remarks>
+    /// Add a <see cref="LightgunSession"/> to the scene as well, so the guns stop firing recoil on every
+    /// trigger pull and only recoil when this script asks.
+    /// </remarks>
     public class LightgunTriggerAction : MonoBehaviour
     {
         // The bullet/shot that appears when you shoot - references a prefab object
         [SerializeField] private Transform shotObject;
+
+        // A shot from a mouse can't tell which gun fired (a gun in mouse mode is a mouse to Unity),
+        // so its feedback goes to this player. 0 is player 1.
+        [SerializeField] private int mousePlayer = 0;
+
         // The number of bullets left
         private int ammoLeft;
 
-
         /// <summary>
         /// Start is only called once in the lifetime of the behaviour.
-        /// The difference between Awake and Start is that Start is only called if the script instance is enabled.
-        /// This allows you to delay any initialization code, until it is really needed.
-        /// Awake is always called before any Start functions.
-        /// This allows you to order initialization of scripts
         /// </summary>
         void Start()
         {
             ammoLeft = 99;
-            // enable forced feedback control so that only game commands cause recoil actions.
-            EnableForcedFeedbackControl(true);
+
+            // The ammo display only takes counts while the game holds ammo control, and taking control
+            // zeroes it, so take control and send the starting count in the same report.
+            var report = BlamconHIDOutputReport.Create();
+            report.EnableAmmoFFBControl(true);
+            report.SetAmmo(ammoLeft);
+            SendToEveryPlayer(ref report);
         }
 
         /// <summary>
-        /// Disable the forced feedback control when game ends.
+        /// Hands the ammo display back to the guns when the game ends.
         /// </summary>
         public void EndGame()
         {
-            EnableForcedFeedbackControl(false);
+            var report = BlamconHIDOutputReport.Create();
+            report.EnableAmmoFFBControl(false);
+            SendToEveryPlayer(ref report);
         }
 
         /// <summary>
@@ -73,34 +85,35 @@ namespace Samples.LightgunRecoilCommand
         }
 
         /// <summary>
-        /// Attempts to enable (or release) the forced feedback control to the game application.
+        /// Recoils the gun that fired and updates its ammo display.
         /// </summary>
-        public void EnableForcedFeedbackControl(bool enable)
+        void RecoilCommand(InputDevice device)
         {
-            BlamconLightgunHID device = InputSystem.GetDevice<BlamconLightgunHID>();
-            if (device != null)
-            {
-                // Ammo control must be enabled for the device to accept ammo counts.
-                // Send the enable and the initial ammo count together in one report.
-                var command = BlamconHIDOutputReport.Create(enable, enable, enable, enable);
-                if (enable)
-                    command.SetAmmo(ammoLeft);
-                device.SendCommand(ref command);
-            }
+            // Recoil and the new ammo count go in one report: the gun handles one report at a time,
+            // so separate commands sent back to back can be dropped.
+            var report = BlamconHIDOutputReport.Create();
+            report.SetRecoil(1);
+            report.SetAmmo(ammoLeft);
+            BlamconLightgunHID.SendCommand(PlayerFor(device), ref report);
         }
 
         /// <summary>
-        /// Recoils the device that fired and updates its ammo display.
+        /// The player whose gun fired: a gun in Gamepad mode knows its player; a mouse doesn't.
         /// </summary>
-        void RecoilCommand(InputDevice device) {
-            if (device is BlamconLightgunHID lightgun) {
-                // Combine recoil and ammo count into a single output report, since
-                // back-to-back commands may be dropped by the device.
-                var command = BlamconHIDOutputReport.Create();
-                command.SetRecoil(1);
-                command.SetAmmo(ammoLeft);
-                lightgun.SendCommand(ref command);
-            }
+        int PlayerFor(InputDevice device)
+        {
+            if (device is BlamconLightgunHID gun && gun.playerIndex >= 0)
+                return gun.playerIndex;
+            return mousePlayer;
+        }
+
+        /// <summary>
+        /// Sends a report to every connected player's gun. Players without a gun are skipped.
+        /// </summary>
+        static void SendToEveryPlayer(ref BlamconHIDOutputReport report)
+        {
+            for (var player = 0; player < 4; player++)
+                BlamconLightgunHID.SendCommand(player, ref report);
         }
 
         /// <summary>
