@@ -22,6 +22,7 @@ however, it has to be formatted properly to pass verification tests.
   if a gun is listed twice (Unity can keep a gun's old devices listed after a firmware update).
 - `BlamconLightgunHID.SendCommand(player, ref report)` sends a combined `BlamconHIDOutputReport` to a
   player's gun in either mode.
+- `BlamconLightgunHID.playerIndex` is public, so games can tell which player's gun fired.
 
 ### Changed
 - Documentation updated for current release-3.0 firmware: force feedback now works over Bluetooth

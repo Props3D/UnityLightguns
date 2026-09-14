@@ -153,8 +153,11 @@ namespace Blamcon.Lightguns
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Init() {}
 
-        /// <summary>0-based player index from the HID product ID, or -1.</summary>
-        internal int playerIndex { get; private set; } = -1;
+        /// <summary>
+        /// The gun's 0-based player index, from its USB product ID: 0 is player 1. -1 if the device
+        /// doesn't carry a Blamcon product ID.
+        /// </summary>
+        public int playerIndex { get; private set; } = -1;
 
         /// <summary>Increases with every Blamcon device created; the highest is the most recently added.</summary>
         internal long creationOrder { get; private set; }
