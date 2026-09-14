@@ -18,10 +18,10 @@ using Blamcon.Lightguns.LowLevel;
 /// </remarks>
 public class MouseModeFeedbackTests
 {
-    const int kVendorId = 0x3673;
-    const int kFirstProductId = 0x0100;
-    const HID.UsagePage kGenericDesktop = (HID.UsagePage)0x01;
-    const HID.UsagePage kVendorDefined = (HID.UsagePage)0xFF00;
+    internal const int kVendorId = 0x3673;
+    internal const int kFirstProductId = 0x0100;
+    internal const HID.UsagePage kGenericDesktop = (HID.UsagePage)0x01;
+    internal const HID.UsagePage kVendorDefined = (HID.UsagePage)0xFF00;
 
     readonly List<InputDevice> m_Added = new List<InputDevice>();
 
@@ -43,7 +43,7 @@ public class MouseModeFeedbackTests
         InputSystem.settings.backgroundBehavior = default;
     }
 
-    static InputDeviceDescription HidDescription(HID.UsagePage usagePage, int usage, int productId, int vendorId = kVendorId)
+    internal static InputDeviceDescription HidDescription(HID.UsagePage usagePage, int usage, int productId, int vendorId = kVendorId)
     {
         var descriptor = new HID.HIDDeviceDescriptor
         {

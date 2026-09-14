@@ -22,6 +22,38 @@ namespace Blamcon.Lightguns
             return result >= 0;
         }
 
+        /// <summary>
+        /// A report that takes or hands back control of only the chosen components and leaves the others
+        /// untouched. <see cref="BlamconHIDOutputReport.EnableFFBControl"/> always sets all four, so asking it
+        /// for recoil, rumble and LED also releases ammo control.
+        /// </summary>
+        public static BlamconHIDOutputReport ControlReport(bool recoil, bool rumble, bool led, bool ammo, bool take)
+        {
+            var control = take ? (byte)3 : (byte)2;
+            var report = BlamconHIDOutputReport.Create();
+            if (recoil)
+            {
+                report.enableRecoilUpdate = 1;
+                report.enableRecoilFFBControl = control;
+            }
+            if (rumble)
+            {
+                report.enableRumbleUpdate = 1;
+                report.enableRumbleFFBControl = control;
+            }
+            if (led)
+            {
+                report.enableLedUpdate = 1;
+                report.enableLedFFBControl = control;
+            }
+            if (ammo)
+            {
+                report.enableAmmoUpdate = 1;
+                report.enableAmmoFFBControl = control;
+            }
+            return report;
+        }
+
         public static bool EnableFFBControl(InputDevice device, bool recoil, bool rumble, bool led, bool ammo)
         {
             var report = BlamconHIDOutputReport.Create(recoil, rumble, led, ammo);
