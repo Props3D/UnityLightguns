@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.HID;
+using UnityEngine.InputSystem.Layouts;
 
 namespace Blamcon.Lightguns
 {

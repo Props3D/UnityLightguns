@@ -4,6 +4,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.HID;
+using UnityEngine.InputSystem.Layouts;
 using Blamcon.Lightguns;
 using Blamcon.Lightguns.LowLevel;
 
