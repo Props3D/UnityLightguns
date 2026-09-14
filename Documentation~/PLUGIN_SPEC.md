@@ -192,7 +192,6 @@ Gaps:
 * No session lifecycle: taking and releasing control is manual, so stopping play mode or crashing
   leaves the gun under app control (recoil no longer fires on the trigger).
 * The single-component commands (`0x20`–`0x23`) are public and unreliable (constraint 4).
-* Command size is hardcoded to 40 instead of `hidDescriptor.outputReportSize`.
 
 ### Planned
 
@@ -220,8 +219,11 @@ Rules:
   rumble and LED. On `Application.quitting`, focus loss (`Application.focusChanged`) and Editor
   play-mode exit (`EditorApplication.playModeStateChanged`): release. Ammo is left to the game, because
   taking ammo control zeroes the display; send the starting count in the same report as taking it.
-* **Size from the descriptor.** Build commands with `hidDescriptor.outputReportSize`, as Unity's own
-  DualShock code does, falling back to 40.
+* **Commands stay a fixed 40 bytes.** Unity's DualShock code sizes commands from
+  `hidDescriptor.outputReportSize` because that controller's report size differs between USB and
+  Bluetooth. Blamcon's doesn't: the firmware requires exactly 40 bytes for `0x10`, and the command
+  struct holds exactly 40, so a larger descriptor value would make Unity read past the struct and a
+  smaller one would be dropped by the firmware.
 * **Remove `0x20`–`0x23` in 2.0.** Delete `BlamconRecoilCommand`, `BlamconRumbleCommand`,
   `BlamconLEDCommand`, `BlamconAmmoCommand` and their `SendCommand` overloads. They don't work on the
   wire, so removal turns silent no-ops into compile errors that point at the fix: build the same effect
@@ -253,9 +255,9 @@ Build order on `release-2.0`. Each step ends with the EditMode tests passing in 
 Windows.
 
 1. **2.0 API cleanup.** First, tests that record the exact `HIDO` bytes every `IForceFeedback` call
-   sends today (`InputSystem.onDeviceCommand`). Then remove the `0x20`–`0x23` commands, size commands
-   from `hidDescriptor.outputReportSize`, and move the feedback code the device repeats in each method
-   into the internal `BlamconForceFeedback`.
+   sends today (`InputSystem.onDeviceCommand`). Then remove the `0x20`–`0x23` commands, and move the
+   feedback code the device repeats in each method into the internal `BlamconForceFeedback`. Commands
+   stay a fixed 40 bytes (§6).
    *Exit: every `IForceFeedback` call sends the same bytes as in 1.1.0, and the tests pass.*
 2. **Mouse-mode feedback through `IForceFeedback`.** `BlamconMouseModeDevice` with the
    vendor-collection matchers, `BlamconLightgunHID.GetForceFeedback(player)` and
