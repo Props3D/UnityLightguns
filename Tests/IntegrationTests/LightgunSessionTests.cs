@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Layouts;
 using Blamcon.Lightguns;
 
 /// <summary>
