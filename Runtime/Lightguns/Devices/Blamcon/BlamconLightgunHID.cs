@@ -153,11 +153,58 @@ namespace Blamcon.Lightguns
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Init() {}
 
+        /// <summary>0-based player index from the HID product ID, or -1.</summary>
+        internal int playerIndex { get; private set; } = -1;
+
+        /// <summary>Increases with every Blamcon device created; the highest is the most recently added.</summary>
+        internal long creationOrder { get; private set; }
+
         /// <inheritdoc />
         protected override void FinishSetup()
         {
             base.FinishSetup();
+            playerIndex = BlamconDevices.PlayerIndexFrom(description);
+            creationOrder = BlamconDevices.NextCreationOrder();
         }
+
+        /// <summary>
+        /// The force feedback interface for a player's gun, in either mode: the gun's gamepad device if it
+        /// is in gamepad mode, otherwise its mouse-mode device.
+        /// </summary>
+        /// <param name="player">0-based player index: 0 is player 1.</param>
+        /// <returns>
+        /// The gun's <see cref="IForceFeedback"/>, or null if the player has no gun that can take feedback.
+        /// A gun in mouse mode on firmware without the vendor-defined collection is invisible to Unity, so
+        /// it returns null too.
+        /// </returns>
+        /// <remarks>
+        /// If a player has more than one matching device, the most recently added wins. After a firmware
+        /// update Unity can keep listing the gun's old devices until the Editor restarts, and those fail
+        /// every command.
+        /// </remarks>
+        public static IForceFeedback GetForceFeedback(int player) =>
+            BlamconDevices.SelectFeedbackDevice(InputSystem.devices, player) as IForceFeedback;
+
+        /// <summary>
+        /// Sends a HID output report to a player's gun, in either mode. Use this to combine several effects
+        /// in one report, which the gun handles better than separate calls sent back to back.
+        /// </summary>
+        /// <param name="player">0-based player index: 0 is player 1.</param>
+        /// <param name="command">The HID output report.</param>
+        /// <returns>False if the player has no gun that can take feedback, or the send failed.</returns>
+        public static bool SendCommand(int player, ref BlamconHIDOutputReport command)
+        {
+            switch (BlamconDevices.SelectFeedbackDevice(InputSystem.devices, player))
+            {
+                case BlamconLightgunHID gun:
+                    return gun.SendCommand(ref command);
+                case BlamconMouseModeDevice mouseMode:
+                    return mouseMode.SendCommand(ref command);
+                default:
+                    return false;
+            }
+        }
+
 
         unsafe bool PreProcessEvent(InputEventPtr eventPtr)
         {

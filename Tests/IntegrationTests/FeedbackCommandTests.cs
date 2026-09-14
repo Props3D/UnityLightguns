@@ -27,7 +27,7 @@ public class FeedbackCommandTests
     }
 
     /// <summary>A 0x10 report: report ID set, the given bytes set, everything else zero.</summary>
-    static byte[] Report(params (int offset, int value)[] fields)
+    internal static byte[] Report(params (int offset, int value)[] fields)
     {
         var report = new byte[kReportSize];
         report[0] = 0x10;
