@@ -217,121 +217,37 @@ namespace Blamcon.Lightguns
         /// Use to send HID output report to this specific device.
         /// </summary>
         /// <param name="command">The HID output report.</param>
-        public bool SendCommand(ref BlamconHIDOutputReport command)
-        {
-            // Send the command to the device
-            long result = ExecuteCommand(ref command);
-            if (result < 0)
-                Debug.LogError($"Failed to send command to {name}. Error: {result}");
-            return result >= 0;
-        }
+        public bool SendCommand(ref BlamconHIDOutputReport command) =>
+            BlamconForceFeedback.Send(this, ref command, "command");
 
         /// <inheritdoc />
-        public bool EnableFFBControl(bool recoil = true, bool rumble = true, bool led = true, bool ammo = false)
-        {
-            var command = BlamconHIDOutputReport.Create(recoil, rumble, led, ammo);
-            // Send the command to the device
-            long result = ExecuteCommand(ref command);
-            if (result < 0)
-                Debug.LogError($"Failed to send FFB control command to {name}. Error: {result}");
-            return result >= 0;
-        }
+        public bool EnableFFBControl(bool recoil = true, bool rumble = true, bool led = true, bool ammo = false) =>
+            BlamconForceFeedback.EnableFFBControl(this, recoil, rumble, led, ammo);
         /// <inheritdoc />
-        public bool EnableAmmoFFBControl(bool ammo = true)
-        {
-            var command = BlamconHIDOutputReport.Create();
-            command.EnableAmmoFFBControl(ammo);
-            // Send the command to the device
-            long result = ExecuteCommand(ref command);
-            if (result < 0)
-                Debug.LogError($"Failed to send Ammo FFB control command to {name}. Error: {result}");
-            return result >= 0;
-        }
+        public bool EnableAmmoFFBControl(bool ammo = true) =>
+            BlamconForceFeedback.EnableAmmoFFBControl(this, ammo);
 
         /// <inheritdoc />
-        public bool ActivateRumble(int pulses = 1)
-        {
-            var command = BlamconHIDOutputReport.Create();
-            command.SetRumble(pulses);
-
-            // Send the command to the device
-            long result = ExecuteCommand(ref command);
-            if (result < 0)
-                Debug.LogError($"Failed to send rumble command to {name}. Error: {result}");
-            return result >= 0;
-        }
+        public bool ActivateRumble(int pulses = 1) =>
+            BlamconForceFeedback.ActivateRumble(this, pulses);
         /// <inheritdoc />
-        public bool ActivateRumble(int pulse, int on, int off)
-        {
-            var command = BlamconHIDOutputReport.Create();
-            command.SetRumble(pulse, on, off);
-
-            // Send the command to the device
-            long result = ExecuteCommand(ref command);
-            if (result < 0)
-                Debug.LogError($"Failed to send rumble command to {name}. Error: {result}");
-            return result >= 0;
-        }
+        public bool ActivateRumble(int pulse, int on, int off) =>
+            BlamconForceFeedback.ActivateRumble(this, pulse, on, off);
         /// <inheritdoc />
-        public bool ActivateRecoil(int pulse = 1)
-        {
-            var command = BlamconHIDOutputReport.Create();
-            command.SetRecoil(pulse);
-
-            // Send the command to the device
-            long result = ExecuteCommand(ref command);
-            if (result < 0)
-                Debug.LogError($"Failed to send recoil command to {name}. Error: {result}");
-            return result >= 0;
-        }
+        public bool ActivateRecoil(int pulse = 1) =>
+            BlamconForceFeedback.ActivateRecoil(this, pulse);
         /// <inheritdoc />
-        public bool ActivateRecoil(int pulse, int on, int off)
-        {
-            var command = BlamconHIDOutputReport.Create();
-            command.SetRecoil(pulse, on, off);
-
-            // Send the command to the device
-            long result = ExecuteCommand(ref command);
-            if (result < 0)
-                Debug.LogError($"Failed to send recoil command to {name}. Error: {result}");
-            return result >= 0;
-        }
+        public bool ActivateRecoil(int pulse, int on, int off) =>
+            BlamconForceFeedback.ActivateRecoil(this, pulse, on, off);
         /// <inheritdoc />
-        public bool ActivateLED(int index, Color color)
-        {
-            var command = BlamconHIDOutputReport.Create();
-            command.SetColor(index, color);
-
-            // Send the command to the device
-            long result = ExecuteCommand(ref command);
-            if (result < 0)
-                Debug.LogError($"Failed to send LED command to {name}. Error: {result}");
-            return result >= 0;
-        }
+        public bool ActivateLED(int index, Color color) =>
+            BlamconForceFeedback.ActivateLED(this, index, color);
         /// <inheritdoc />
-        public bool ActivateLED(int index, Color color, int pulse)
-        {
-            var command = BlamconHIDOutputReport.Create();
-            command.SetColor(index, color, pulse);
-
-            // Send the command to the device
-            long result = ExecuteCommand(ref command);
-            if (result < 0)
-                Debug.LogError($"Failed to send LED command to {name}. Error: {result}");
-            return result >= 0;
-        }
+        public bool ActivateLED(int index, Color color, int pulse) =>
+            BlamconForceFeedback.ActivateLED(this, index, color, pulse);
         /// <inheritdoc />
-        public bool SendAmmoCount(int remaining)
-        {
-            var command = BlamconHIDOutputReport.Create();
-            command.SetAmmo(remaining);
-
-            // Send the command to the device
-            long result = ExecuteCommand(ref command);
-            if (result < 0)
-                Debug.LogError($"Failed to send Ammo count to {name}. Error: {result}");
-            return result >= 0;
-        }
+        public bool SendAmmoCount(int remaining) =>
+            BlamconForceFeedback.SendAmmoCount(this, remaining);
 
 
         // Raw gamepad input report as sent by the firmware (GamepadReport in gamepad.h).
