@@ -36,11 +36,9 @@ the documentation.
 - The Lightgun Recoil Command sample sends feedback to the player whose gun fired, with a configurable
   player for mouse clicks, and relies on `LightgunSession` for recoil control instead of taking control
   itself. It no longer has an `EnableForcedFeedbackControl` method.
-- Documentation updated for current release-3.0 firmware: force feedback now works over Bluetooth
-  Classic as well as USB, report `0x23` is declared in the HID descriptor, and the 16-bit feedback
-  periods are read in full (periods that are exact multiples of 256 ms were dropped on 3.0.0 and
-  earlier). The single-component output reports are still accepted only at their exact declared
-  size, so `BlamconHIDOutputReport` (`0x10`) remains the recommended command.
+- Documentation lists the firmware each feature needs in a firmware compatibility table: force feedback
+  over Bluetooth Classic, force feedback in mouse mode, and rumble and LED periods that are exact
+  multiples of 256 ms (dropped by older firmware).
 
 ### Removed
 - **Breaking:** the single-component output commands `BlamconRecoilCommand`, `BlamconRumbleCommand`,
