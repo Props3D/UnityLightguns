@@ -188,20 +188,5 @@ public class IntegrationTests
         Assert.That(ReportOffset<BlamconHIDOutputReport>("recoil"), Is.EqualTo(29));
         Assert.That(ReportOffset<BlamconHIDOutputReport>("ammoRemaining"), Is.EqualTo(32));
         Assert.That(ReportOffset<BlamconHIDOutputReport>("ammoMax"), Is.EqualTo(34));
-
-        Assert.That(ReportOffset<BlamconLEDCommand>("ledFlashOffPeriod"), Is.EqualTo(7));
-        Assert.That(ReportOffset<BlamconLEDCommand>("ledFlashOnPeriod"), Is.EqualTo(9));
-    }
-
-    [Test]
-    [Category("Integration")]
-    public void RumbleCommand_SetRumbleWithTimingsSetsPulseCount()
-    {
-        var command = BlamconRumbleCommand.Create(1);
-        command.SetRumble(3, 500, 400);
-
-        Assert.That(command.rumble, Is.EqualTo(3));
-        Assert.That(command.rumbleOnPeriod, Is.EqualTo(500));
-        Assert.That(command.rumbleOffPeriod, Is.EqualTo(400));
     }
 }

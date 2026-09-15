@@ -7,6 +7,9 @@ uid: input-system-lightgun
   - [Remapping Absolute Positions](#remapping-absolute-positions)
 - [Blamcon Lightguns](#blamcon-lightguns)
   - [Forced Feedback Commands](#forced-feedback-commands)
+    - [Firmware compatibility](#firmware-compatibility)
+    - [Lightgun Session](#lightgun-session)
+- [Upgrading from 1.x](#upgrading-from-1x)
 
 Physically, Lightguns represent input devices attached to the computer through USB, which a user can use to control the app. All lightguns are built on the HID interface, and have the ability to connect to the computer as either:
  - Mouse with Keyboard (Composite Device)
@@ -82,29 +85,122 @@ Blamcon lightguns are well supported on different Devices. This plugin implement
 
 * [`BlamconLightgunHID`]: A Blamcon Lightgun connected to a desktop computer using the HID interface and advertised as a Gamepad device. 
 
+A Blamcon lightgun in mouse mode aims and fires through Unity's normal `Mouse`, so it isn't a `Lightgun` device. Firmware with mouse-mode feedback adds a vendor-defined HID collection that the package uses for force feedback only; you reach it through `BlamconLightgunHID.GetForceFeedback`, the same as a gun in Gamepad mode.
+
 ### Forced Feedback Commands
 Blamcon Lightguns provide the ability to control different feedback components, when available. Typically, a lightgun may have a solenoid, vibration motor, or an addressable LED.
 
 
 > NOTE: Due to limitations in the USB driver and/or the hardware, only one IOCTL (input/output control) command can be serviced at a time. Feedback functionality is implemented using IOCTL commands, and so if different methods are called in quick succession, it is likely that only the first command will successfully complete. The other commands will be dropped.
 
-If there is a need to activate recoil, rumble, or LED at the same time, use the [`BlamconHIDOutputReport`] struct and set the state for each component then use `BlamconLightgunHID.SendCommand(ref cmd)`. Alternatively, setup coroutines to send multiple commands with enough of a delay between each one. See the samples for examples to follow. 
+Get a player's gun with `BlamconLightgunHID.GetForceFeedback(player)`, where `player` is 0 for player 1. It returns the gun's `IForceFeedback` whether the gun is in Gamepad mode or mouse mode, or `null` if that player has no gun that can take feedback. If a player has a gun listed twice, for example after a firmware update without restarting the Editor, the most recently added device is used.
 
-#### Firmware compatibility notes (release-3.0)
+If there is a need to activate recoil, rumble, or LED at the same time, use the [`BlamconHIDOutputReport`] struct, set the state for each component, then send it with `BlamconLightgunHID.SendCommand(player, ref report)`. Alternatively, setup coroutines to send multiple commands with enough of a delay between each one. See the samples for examples to follow. 
 
-* Force feedback is only processed while the lightgun is in Gamepad mode and in play mode. Output reports are handled over USB, and over Bluetooth Classic with current 3.0 firmware (3.0.0 and earlier handle them over USB only).
+#### Firmware compatibility
+
+Some features need newer firmware. Update the gun's firmware with [Blamcon ARC](https://blamcon.com/manual/blamcon-arc).
+
+| Feature | Firmware |
+|---|---|
+| Aim and buttons in Gamepad mode | 1.0.16 or later |
+| Force feedback in Gamepad mode over USB | 1.0.16 or later |
+| Force feedback in mouse mode over USB | 2.1.0 or later |
+| Rumble and LED periods that are exact multiples of 256 ms | 2.1.0 or later |
+| Force feedback in Gamepad mode over Bluetooth Classic | 4.0.0 or later |
+| Force feedback in mouse mode over Bluetooth Classic | 4.0.0 or later |
+
+#### Firmware behaviour notes
+
+* Force feedback is only processed while the lightgun is in play mode.
+* A gun in mouse mode on firmware older than 2.1.0 is invisible to Unity, so `GetForceFeedback` returns `null`. Update the firmware, or switch the gun to Gamepad mode in Blamcon ARC.
 * `SendAmmoCount` only takes effect after ammo control has been enabled, e.g. `EnableFFBControl(ammo: true)` or `EnableAmmoFFBControl(true)`. Enabling ammo control resets the display, so send the starting count in the same report (`command.SetAmmo(n)`).
 * The LED `index` parameter is currently ignored by the firmware.
-* `BlamconHIDOutputReport` (report `0x10`) is the recommended command, and the only one that is reliable. Unity sizes every HID output command to the device's largest output report (40 bytes here), which is what the Windows HID stack expects; the firmware accepts the single-component commands (`BlamconRecoilCommand` `0x20`, `BlamconRumbleCommand` `0x21`, `BlamconLEDCommand` `0x22`, `BlamconAmmoCommand` `0x23`) only at their exact declared size, so those padded writes are ignored. `0x23` is additionally undeclared in the HID descriptor on firmware 3.0.0 and earlier, where the host itself may reject it.
+* `BlamconHIDOutputReport` (report `0x10`) is the only output command. It carries every component in one 40-byte report, which is the size Unity sends and the size the firmware expects. Package 2.0 removed the single-component commands (reports `0x20`–`0x23`): Unity pads every HID output command to the device's largest output report, and the firmware accepts those reports only at their exact size, so they never reached the gun.
 * Timing limits (enforced by the firmware and clamped by this package): rumble 100-2400 ms on and off, LED flash 20-5000 ms on and off, recoil 15-200 ms on and 45-200 ms off. If you send no timings, the device defaults are used.
-* Firmware 3.0.0 and earlier read the rumble and LED on/off periods only when the low byte is non-zero, silently dropping periods that are exact multiples of 256 ms (256, 512, 768, 1024, 1280, 1536, 1792). Current 3.0 firmware reads the full 16-bit value; avoid those values only if you need to support the older builds.
+* Firmware older than 2.1.0 reads the rumble and LED on/off periods only when the low byte is non-zero, so it silently drops periods that are exact multiples of 256 ms (256, 512, 768, 1024, 1280, 1536, 1792). Avoid those values if you need to support older firmware.
 
 
 ```CSharp
-BlamconLightgunHID device = InputSystem.GetDevice<BlamconLightgunHID>();
-if (device != null)
+IForceFeedback gun = BlamconLightgunHID.GetForceFeedback(0); // player 1, Gamepad or mouse mode
+if (gun != null)
 {
     // recoil once
-    device.ActivateRecoil(1);
+    gun.ActivateRecoil(1);
 }
+
+// Several effects in one report
+var report = BlamconHIDOutputReport.Create();
+report.SetRecoil(1);
+report.SetAmmo(ammoLeft);
+BlamconLightgunHID.SendCommand(0, ref report);
 ```
+
+#### Lightgun Session
+
+Until a game takes control, a Blamcon lightgun drives its own feedback: recoil fires on every trigger pull, and the LED and ammo display follow the gun's settings. Add a **Lightgun Session** component to a scene (**Add Component → Blamcon → Lightgun Session**) to take control for as long as the component is enabled.
+
+* It takes control of recoil, rumble and the LED on every connected gun, in Gamepad or mouse mode, and of guns that connect later.
+* It hands control back when the component is disabled or destroyed, when play mode stops, and when the application quits, so a gun is never left under game control.
+* With **Release On Focus Loss** ticked (the default), it also hands control back while the application doesn't have focus, and takes it again when focus returns.
+* Only ticked components are touched. Taking or handing back control turns the LED off and stops rumble.
+* **Ammo** is off by default, because taking ammo control zeroes the display. To manage the display yourself, take ammo control and send the starting count in one report:
+
+```CSharp
+var report = BlamconHIDOutputReport.Create();
+report.EnableAmmoFFBControl(true);
+report.SetAmmo(99);
+BlamconLightgunHID.SendCommand(0, ref report);
+```
+
+Keep one enabled session at a time; two send every command twice. To find which player a Gamepad-mode gun belongs to, use `BlamconLightgunHID.playerIndex` (0 is player 1). A gun in mouse mode arrives as Unity's `Mouse`, which can't identify the gun.
+
+## Upgrading from 1.x
+
+Version 2.0 keeps `IForceFeedback` and `BlamconHIDOutputReport`, so most feedback code carries over. Work through the changes below.
+
+### The single-component commands are removed
+
+`BlamconRecoilCommand`, `BlamconRumbleCommand`, `BlamconLEDCommand` and `BlamconAmmoCommand` are gone, along with their `SendCommand` overloads. They never reached the gun in 1.x: Unity pads every HID output command to 40 bytes, and the firmware accepted those reports only at their exact size. Build the same effect with `BlamconHIDOutputReport`:
+
+| 1.x | 2.0 |
+|---|---|
+| `BlamconRecoilCommand.Create(pulses[, on, off])` | `var report = BlamconHIDOutputReport.Create();` then `report.SetRecoil(pulses[, on, off])` |
+| `BlamconRumbleCommand.Create(pulses[, on, off])` | `report.SetRumble(pulses[, on, off])` |
+| `BlamconLEDCommand.Create(index, color[, flashes[, on, off]])` | `report.SetColor(index, color[, flashes[, on, off]])` |
+| `BlamconAmmoCommand.Create(remaining)` | `report.SetAmmo(remaining)` |
+| `device.SendCommand(ref command)` | `device.SendCommand(ref report)` |
+
+> NOTE: Because the removed commands never reached the gun, effects you migrate will start happening for the first time: LED colours, rumble and ammo counts that were silent in 1.x.
+
+### Find guns by player instead of `GetDevice`
+
+1.x code usually found a gun with `InputSystem.GetDevice<BlamconLightgunHID>()`. That still compiles, but it returns only the first gun, only in Gamepad mode, and can return a device left over from before a firmware update, which fails every command. Look guns up by player instead; it works in Gamepad and mouse mode:
+
+```CSharp
+// 1.x
+BlamconLightgunHID device = InputSystem.GetDevice<BlamconLightgunHID>();
+if (device != null)
+    device.SendCommand(ref report);
+
+// 2.0
+if (BlamconLightgunHID.GetForceFeedback(player) != null)
+    BlamconLightgunHID.SendCommand(player, ref report);
+```
+
+To send feedback to the gun that fired, take the player from the device that triggered the action. A shot from a mouse, including a gun in mouse mode, can't identify the gun, so fall back to a player you choose:
+
+```CSharp
+int PlayerFor(InputDevice device, int mousePlayer = 0) =>
+    device is BlamconLightgunHID gun && gun.playerIndex >= 0 ? gun.playerIndex : mousePlayer;
+```
+
+Drop checks like `if (device is BlamconLightgunHID)` before sending feedback. In mouse mode shots arrive from `Mouse`, so those checks silently skip feedback.
+
+### Feedback control: keep yours, or use Lightgun Session
+
+If your game takes and releases control itself with `EnableFFBControl`, it keeps working. You can replace it with a [Lightgun Session](#lightgun-session) component, which also releases control while the application lacks focus and takes control of guns that connect later. Don't use both: they send duplicate control commands, and the session's focus-loss release hands control back while your code thinks it still holds it.
+
+### Samples
+
+Re-import the **Lightgun Recoil Command** sample to get the 2.0 version. It sends feedback to the gun that fired, relies on a Lightgun Session for recoil control, and no longer has an `EnableForcedFeedbackControl` method.
