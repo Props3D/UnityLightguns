@@ -8,7 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 Due to package verification, the latest version below is the unpublished version and the date is meaningless.
 however, it has to be formatted properly to pass verification tests.
 
-## [Unreleased]
+## [2.0.0] - 2026-09-14
+
+Force feedback for guns in mouse mode, feedback addressed by player, an opt-in session that manages
+feedback control, and removal of the single-component output commands. See **Upgrading from 1.x** in
+the documentation.
 
 ### Added
 - Force feedback for guns in **mouse mode**, through the same `IForceFeedback` interface. Firmware with
