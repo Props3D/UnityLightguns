@@ -1,7 +1,7 @@
 # Blamcon Lightguns for Unity — package specification
 
-Draft 3, 2026-09-14. Package `com.blamcon.lightguns`, targeting **2.0.0** on branch `release-2.0`
-(current release 1.1.0). Target: Unity 6000.0+, Input System 1.14, Windows. Companion to the Unreal
+Draft 4, 2026-09-14. Package `com.blamcon.lightguns`, targeting **2.0.0** on branch `release-2.0`
+(current release 1.1.0; release preparation on `release-2.0-step4`). Target: Unity 6000.0+, Input System 1.14, Windows. Companion to the Unreal
 plugin (`UnrealLightguns/docs/PLUGIN_SPEC.md`).
 
 Unlike the Unreal plugin, this package is already released. This spec describes what is built, what
@@ -253,7 +253,7 @@ native IOCTL blocks is undocumented; measure it on hardware over USB and Bluetoo
 
 | | Gamepad mode | Mouse mode (vendor collection) |
 |---|---|---|
-| **Windows** | Supported. Tested over USB and Bluetooth | Tested over USB and Bluetooth (§4.1); package support is milestone 1 |
+| **Windows** | Supported. Tested over USB and Bluetooth | Supported (milestone 2). Tested on hardware with the package: a feedback check script and the shooting gallery (2026-09-14). The prototype layout was tested over USB and Bluetooth (§4.1) |
 | **macOS** | Unity supports HID here, so it should work; **not tested** | Unlikely: macOS makes one HID device per interface, and that device reports the mouse as its main usage |
 | **UWP** | Not tested. Unity documents DualShock rumble/lightbar as "not working correctly" on UWP | Not tested |
 | **Linux** | Not possible (constraint 3) | Not possible |
@@ -263,28 +263,39 @@ Windows users running HidHide must whitelist the game.
 
 ## 9. Milestones
 
-Build order on `release-2.0`. Each step ends with the EditMode tests passing in the Unity Test Runner on
-Windows.
+Build order on `release-2.0`. Each step ends with the tests passing in the Unity Test Runner on Windows.
+They are PlayMode tests: the test assembly includes all platforms.
 
 1. **2.0 API cleanup.** First, tests that record the exact `HIDO` bytes every `IForceFeedback` call
    sends today (`InputSystem.onDeviceCommand`). Then remove the `0x20`–`0x23` commands, and move the
    feedback code the device repeats in each method into the internal `BlamconForceFeedback`. Commands
    stay a fixed 40 bytes (§6).
    *Exit: every `IForceFeedback` call sends the same bytes as in 1.1.0, and the tests pass.*
+   **Status: done.** The byte tests pass in Unity.
 2. **Mouse-mode feedback through `IForceFeedback`.** `BlamconMouseModeDevice` with the
    vendor-collection matchers, `BlamconLightgunHID.GetForceFeedback(player)` and
    `SendCommand(player, ref report)` with gamepad-first, newest-device routing, and docs for the
    firmware requirement.
    *Exit: the same `IForceFeedback` calls fire recoil, rumble, LED and ammo on a gun in gamepad mode and
    on a gun in mouse mode, over USB and Bluetooth, while the system mouse aims and fires.*
+   **Status: done.** 38 tests pass. On hardware (Windows, 2026-09-14), a check script fired every effect
+   through `GetForceFeedback` on a gun in mouse mode, and the shooting gallery worked end to end on its
+   `lightguns-2.0` branch. Which connections those hardware runs covered wasn't recorded. The device
+   needed a placeholder control: the Input System can't build a device with none (§4.1).
 3. **Session lifecycle and samples.** Opt-in `LightgunSession`; `BlamconLightgunHID.playerIndex` made
    public; the trigger sample sends feedback to the player whose gun fired, with a configurable player
    for mouse clicks, and relies on `LightgunSession` for recoil control.
    *Exit: two guns in one scene, feedback reaches the right gun, and stopping play mode with a
    `LightgunSession` in the scene returns recoil to firing on the trigger.*
+   **Status: merged into `release-2.0`.** The 14 session tests and the `LightgunSession` hardware check
+   are not yet confirmed; the shooting gallery manages control itself, so it doesn't exercise the session.
 4. **Release.** Migrate the shooting gallery and ARC, upgrade notes, `package.json` 2.0.0, CHANGELOG,
-   tag `2.0.0`. Mouse-mode feedback needs `release-3.0` firmware with the vendor collection, so 2.0.0
-   ships with or after that firmware release.
+   tag `2.0.0`. Mouse-mode feedback needs firmware with the vendor collection, so 2.0.0 ships with or
+   after that firmware release.
+   **Status: in progress on `release-2.0-step4`.** Done: version 2.0.0, an upgrade guide from 1.x, and a
+   firmware compatibility table whose version-dependent rows are marked TBD. Waiting on which firmware
+   release ships the changes (§11). The shooting gallery is migrated on its `lightguns-2.0` branch; ARC
+   is not yet migrated; the pinning below is not yet done.
 
 Before merging `release-2.0` into `main`: pin ARC and the shooting gallery to `#1.1.0`. Both install the
 package from `main` with no version, so a merge would otherwise pull 2.0 into them on their next
@@ -347,6 +358,9 @@ Decided (2026-09-14):
   `"testables": ["com.blamcon.lightguns"]` in `Packages/manifest.json` for the package's tests to appear.
 
 Still open:
+* **Which firmware release ships the HID changes?** They are on the firmware's `release-3.0` branch, and
+  porting them to the 2.x line is under consideration. The answer fills the TBD rows in the
+  documentation's firmware compatibility table and decides when 2.0.0 can be tagged.
 * **How long does `HIDO` block,** over USB and over Bluetooth? Decides whether commands need spacing.
 * **Rumble and ammo through the vendor collection** — only recoil and LED were tested.
 * **Emulators and front ends with the extra collection** — shared with the Unreal plugin; unchecked.
