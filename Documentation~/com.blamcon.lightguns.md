@@ -7,6 +7,9 @@ uid: input-system-lightgun
   - [Remapping Absolute Positions](#remapping-absolute-positions)
 - [Blamcon Lightguns](#blamcon-lightguns)
   - [Forced Feedback Commands](#forced-feedback-commands)
+    - [Firmware compatibility](#firmware-compatibility)
+    - [Lightgun Session](#lightgun-session)
+- [Upgrading from 1.x](#upgrading-from-1x)
 
 Physically, Lightguns represent input devices attached to the computer through USB, which a user can use to control the app. All lightguns are built on the HID interface, and have the ability to connect to the computer as either:
  - Mouse with Keyboard (Composite Device)
@@ -152,3 +155,53 @@ BlamconLightgunHID.SendCommand(0, ref report);
 ```
 
 Keep one enabled session at a time; two send every command twice. To find which player a Gamepad-mode gun belongs to, use `BlamconLightgunHID.playerIndex` (0 is player 1). A gun in mouse mode arrives as Unity's `Mouse`, which can't identify the gun.
+
+## Upgrading from 1.x
+
+Version 2.0 keeps `IForceFeedback` and `BlamconHIDOutputReport`, so most feedback code carries over. Work through the changes below.
+
+### The single-component commands are removed
+
+`BlamconRecoilCommand`, `BlamconRumbleCommand`, `BlamconLEDCommand` and `BlamconAmmoCommand` are gone, along with their `SendCommand` overloads. They never reached the gun in 1.x: Unity pads every HID output command to 40 bytes, and the firmware accepted those reports only at their exact size. Build the same effect with `BlamconHIDOutputReport`:
+
+| 1.x | 2.0 |
+|---|---|
+| `BlamconRecoilCommand.Create(pulses[, on, off])` | `var report = BlamconHIDOutputReport.Create();` then `report.SetRecoil(pulses[, on, off])` |
+| `BlamconRumbleCommand.Create(pulses[, on, off])` | `report.SetRumble(pulses[, on, off])` |
+| `BlamconLEDCommand.Create(index, color[, flashes[, on, off]])` | `report.SetColor(index, color[, flashes[, on, off]])` |
+| `BlamconAmmoCommand.Create(remaining)` | `report.SetAmmo(remaining)` |
+| `device.SendCommand(ref command)` | `device.SendCommand(ref report)` |
+
+> NOTE: Because the removed commands never reached the gun, effects you migrate will start happening for the first time: LED colours, rumble and ammo counts that were silent in 1.x.
+
+### Find guns by player instead of `GetDevice`
+
+1.x code usually found a gun with `InputSystem.GetDevice<BlamconLightgunHID>()`. That still compiles, but it returns only the first gun, only in Gamepad mode, and can return a device left over from before a firmware update, which fails every command. Look guns up by player instead; it works in Gamepad and mouse mode:
+
+```CSharp
+// 1.x
+BlamconLightgunHID device = InputSystem.GetDevice<BlamconLightgunHID>();
+if (device != null)
+    device.SendCommand(ref report);
+
+// 2.0
+if (BlamconLightgunHID.GetForceFeedback(player) != null)
+    BlamconLightgunHID.SendCommand(player, ref report);
+```
+
+To send feedback to the gun that fired, take the player from the device that triggered the action. A shot from a mouse, including a gun in mouse mode, can't identify the gun, so fall back to a player you choose:
+
+```CSharp
+int PlayerFor(InputDevice device, int mousePlayer = 0) =>
+    device is BlamconLightgunHID gun && gun.playerIndex >= 0 ? gun.playerIndex : mousePlayer;
+```
+
+Drop checks like `if (device is BlamconLightgunHID)` before sending feedback. In mouse mode shots arrive from `Mouse`, so those checks silently skip feedback.
+
+### Feedback control: keep yours, or use Lightgun Session
+
+If your game takes and releases control itself with `EnableFFBControl`, it keeps working. You can replace it with a [Lightgun Session](#lightgun-session) component, which also releases control while the application lacks focus and takes control of guns that connect later. Don't use both: they send duplicate control commands, and the session's focus-loss release hands control back while your code thinks it still holds it.
+
+### Samples
+
+Re-import the **Lightgun Recoil Command** sample to get the 2.0 version. It sends feedback to the gun that fired, relies on a Lightgun Session for recoil control, and no longer has an `EnableForcedFeedbackControl` method.
