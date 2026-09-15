@@ -5,7 +5,7 @@ This is a sample script that demonstrates how to translate the OnFire input acti
 It works with a gun in Gamepad mode or in mouse mode, and with a plain mouse:
 
 - **Gamepad mode:** the shot comes from the gun itself, so feedback goes to that gun's player.
-- **Mouse mode, or a mouse:** Unity sees a mouse click, which can't say which gun fired, so feedback goes to the player set in **Mouse Player** (0 is player 1). Mouse-mode feedback needs Blamcon firmware with mouse-mode feedback.
+- **Mouse mode, or a mouse:** Unity sees a mouse click, which can't say which gun fired, so feedback goes to the player set in **Mouse Player** (0 is player 1). Mouse-mode feedback needs Blamcon firmware 2.1.0 or later over USB, or 4.0.0 or later over Bluetooth Classic.
 
 ## Setup
 

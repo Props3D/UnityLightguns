@@ -99,27 +99,26 @@ If there is a need to activate recoil, rumble, or LED at the same time, use the 
 
 #### Firmware compatibility
 
-<!-- RELEASE CHECKLIST: replace every TBD below with the first released firmware version that has the feature. -->
-
 Some features need newer firmware. Update the gun's firmware with [Blamcon ARC](https://blamcon.com/manual/blamcon-arc).
 
 | Feature | Firmware |
 |---|---|
 | Aim and buttons in Gamepad mode | 1.0.16 or later |
 | Force feedback in Gamepad mode over USB | 1.0.16 or later |
-| Force feedback in Gamepad mode over Bluetooth Classic | TBD |
-| Force feedback in mouse mode, over USB and Bluetooth Classic | TBD |
-| Rumble and LED periods that are exact multiples of 256 ms | TBD |
+| Force feedback in mouse mode over USB | 2.1.0 or later |
+| Rumble and LED periods that are exact multiples of 256 ms | 2.1.0 or later |
+| Force feedback in Gamepad mode over Bluetooth Classic | 4.0.0 or later |
+| Force feedback in mouse mode over Bluetooth Classic | 4.0.0 or later |
 
 #### Firmware behaviour notes
 
 * Force feedback is only processed while the lightgun is in play mode.
-* A gun in mouse mode on firmware without mouse-mode feedback is invisible to Unity, so `GetForceFeedback` returns `null`. Update the firmware, or switch the gun to Gamepad mode in Blamcon ARC.
+* A gun in mouse mode on firmware older than 2.1.0 is invisible to Unity, so `GetForceFeedback` returns `null`. Update the firmware, or switch the gun to Gamepad mode in Blamcon ARC.
 * `SendAmmoCount` only takes effect after ammo control has been enabled, e.g. `EnableFFBControl(ammo: true)` or `EnableAmmoFFBControl(true)`. Enabling ammo control resets the display, so send the starting count in the same report (`command.SetAmmo(n)`).
 * The LED `index` parameter is currently ignored by the firmware.
 * `BlamconHIDOutputReport` (report `0x10`) is the only output command. It carries every component in one 40-byte report, which is the size Unity sends and the size the firmware expects. Package 2.0 removed the single-component commands (reports `0x20`–`0x23`): Unity pads every HID output command to the device's largest output report, and the firmware accepts those reports only at their exact size, so they never reached the gun.
 * Timing limits (enforced by the firmware and clamped by this package): rumble 100-2400 ms on and off, LED flash 20-5000 ms on and off, recoil 15-200 ms on and 45-200 ms off. If you send no timings, the device defaults are used.
-* Firmware older than the version in the table reads the rumble and LED on/off periods only when the low byte is non-zero, so it silently drops periods that are exact multiples of 256 ms (256, 512, 768, 1024, 1280, 1536, 1792). Avoid those values if you need to support older firmware.
+* Firmware older than 2.1.0 reads the rumble and LED on/off periods only when the low byte is non-zero, so it silently drops periods that are exact multiples of 256 ms (256, 512, 768, 1024, 1280, 1536, 1792). Avoid those values if you need to support older firmware.
 
 
 ```CSharp

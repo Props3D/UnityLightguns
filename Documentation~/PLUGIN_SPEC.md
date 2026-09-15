@@ -1,7 +1,7 @@
 # Blamcon Lightguns for Unity — package specification
 
-Draft 4, 2026-09-14. Package `com.blamcon.lightguns`, targeting **2.0.0** on branch `release-2.0`
-(current release 1.1.0; release preparation on `release-2.0-step4`). Target: Unity 6000.0+, Input System 1.14, Windows. Companion to the Unreal
+Draft 5, 2026-09-14. Package `com.blamcon.lightguns`, targeting **2.0.0** on branch `release-2.0`
+(current release 1.1.0). Target: Unity 6000.0+, Input System 1.14, Windows. Companion to the Unreal
 plugin (`UnrealLightguns/docs/PLUGIN_SPEC.md`).
 
 Unlike the Unreal plugin, this package is already released. This spec describes what is built, what
@@ -23,7 +23,7 @@ mode, **through the same interface**, and games that can be built and tested on 
 
 | # | Constraint | Consequence |
 |---|---|---|
-| 1 | Windows opens mouse/keyboard HID collections **exclusively**; game controllers and vendor-defined collections are **shared**. | Feedback reaches a gun in gamepad mode through its gamepad device, and in mouse mode only through the **vendor-defined collection** (usage page `0xFF00`, usage `0x01`) that current `release-3.0` firmware adds. Tested in Unity on Windows over USB and Bluetooth (2026-09-14). |
+| 1 | Windows opens mouse/keyboard HID collections **exclusively**; game controllers and vendor-defined collections are **shared**. | Feedback reaches a gun in gamepad mode through its gamepad device, and in mouse mode only through the **vendor-defined collection** (usage page `0xFF00`, usage `0x01`) that firmware 2.1.0 adds over USB and 4.0.0 over Bluetooth Classic. Tested in Unity on Windows over USB and Bluetooth (2026-09-14). |
 | 2 | **Unity doesn't see a gun in mouse mode on older firmware** (tested, 2026-09-14). Its mouse and keyboard collections go to the platform `Mouse` and `Keyboard`, and it has no vendor collection. | The package can't detect or warn about it. The firmware requirement is documented instead (§4.3). |
 | 3 | The Input System supports HID directly on **Windows, macOS and UWP only**. On Linux, gamepads arrive through SDL with interface `"Linux"`, not `"HID"` (Input System `HID.md`, `LinuxSupport.cs`). | No layout here can match on Linux, and nothing can service `HIDO` there. Linux is out of scope. |
 | 4 | `HIDO` goes through `InputDevice.ExecuteCommand` → `NativeInputSystem.IOCTL`, a closed native call. The payload is the raw report including its ID. Unity's own DualShock/DualSense code sizes every `HIDO` command to `hidDescriptor.outputReportSize`, the device's **largest** output report. | Commands are 40 bytes. The firmware accepts the single-component reports (`0x20`–`0x23`) only at their exact size, so **report `0x10` is the only reliable command**. |
@@ -90,8 +90,9 @@ mode becomes a `BlamconLightgunHID`; in mouse mode it becomes nothing the packag
 
 ### 4.1 Mouse mode: the vendor collection (roadmap milestone 1)
 
-Current `release-3.0` firmware adds a third top-level collection to the mouse-mode descriptor, next to
-the mouse and keyboard, over USB and Bluetooth Classic.
+Firmware 2.1.0 adds a third top-level collection to the mouse-mode descriptor, next to the mouse and
+keyboard, over USB; 4.0.0 adds it over Bluetooth Classic. It was developed and tested on the firmware's
+`release-3.0` branch.
 
 **Tested in Unity on Windows (2026-09-14, RP2350 gun on `release-3.0`, USB mouse mode then Bluetooth
 mouse mode after re-pairing):**
@@ -141,7 +142,8 @@ A native plugin that reads `0x50`/`0x51` is a deferred milestone (§9).
 
 Unity doesn't see the gun at all (constraint 2), so there is nothing to detect. The package documents
 the requirement in the README and the `GetForceFeedback` docs: "a gun in mouse mode needs firmware with
-the vendor-defined collection for force feedback; otherwise use Gamepad mode". A `null` from
+the vendor-defined collection for force feedback; otherwise use Gamepad mode" (2.1.0 over USB, 4.0.0
+over Bluetooth Classic). A `null` from
 `GetForceFeedback` for a player who is visibly aiming with a gun is the symptom support should recognise.
 
 ## 5. Input
@@ -291,10 +293,10 @@ They are PlayMode tests: the test assembly includes all platforms.
    are not yet confirmed; the shooting gallery manages control itself, so it doesn't exercise the session.
 4. **Release.** Migrate the shooting gallery and ARC, upgrade notes, `package.json` 2.0.0, CHANGELOG,
    tag `2.0.0`. Mouse-mode feedback needs firmware with the vendor collection, so 2.0.0 ships with or
-   after that firmware release.
-   **Status: in progress on `release-2.0-step4`.** Done: version 2.0.0, an upgrade guide from 1.x, and a
-   firmware compatibility table whose version-dependent rows are marked TBD. Waiting on which firmware
-   release ships the changes (§11). The shooting gallery is migrated on its `lightguns-2.0` branch; ARC
+   after firmware 2.1.0.
+   **Status: in progress.** Done and merged into `release-2.0`: version 2.0.0, an upgrade guide from
+   1.x, and a firmware compatibility table (2.1.0 for mouse-mode feedback over USB and full 16-bit
+   periods; 4.0.0 for Bluetooth Classic feedback in either mode). The shooting gallery is migrated on its `lightguns-2.0` branch; ARC
    is not yet migrated; the pinning below is not yet done.
 
 Before merging `release-2.0` into `main`: pin ARC and the shooting gallery to `#1.1.0`. Both install the
@@ -354,13 +356,12 @@ Decided (2026-09-14):
 * **2.0 removes the single-component commands** rather than deprecating them (§6).
 * **Decoded state format code deferred to 3.0** (§5).
 * **`LightgunSession` is opt-in** (§6).
+* **Firmware:** mouse-mode feedback over USB and full 16-bit rumble and LED periods ship in 2.1.0;
+  force feedback over Bluetooth Classic, in Gamepad or mouse mode, ships in 4.0.0.
 * **Tests run in the Unity Test Runner on Windows.** The consuming test project needs
   `"testables": ["com.blamcon.lightguns"]` in `Packages/manifest.json` for the package's tests to appear.
 
 Still open:
-* **Which firmware release ships the HID changes?** They are on the firmware's `release-3.0` branch, and
-  porting them to the 2.x line is under consideration. The answer fills the TBD rows in the
-  documentation's firmware compatibility table and decides when 2.0.0 can be tagged.
 * **How long does `HIDO` block,** over USB and over Bluetooth? Decides whether commands need spacing.
 * **Rumble and ammo through the vendor collection** — only recoil and LED were tested.
 * **Emulators and front ends with the extra collection** — shared with the Unreal plugin; unchecked.

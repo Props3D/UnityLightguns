@@ -16,7 +16,7 @@ the documentation.
 
 ### Added
 - Force feedback for guns in **mouse mode**, through the same `IForceFeedback` interface. Firmware with
-  mouse-mode feedback adds a vendor-defined HID collection (usage page `0xFF00`, usage `0x01`); the
+  mouse-mode feedback (2.1.0 over USB, 4.0.0 over Bluetooth Classic) adds a vendor-defined HID collection (usage page `0xFF00`, usage `0x01`); the
   package matches it as a feedback-only device that isn't a `Lightgun`, so it never appears in lightgun
   bindings. Its only control is a noisy, synthetic placeholder, because the Input System can't build a
   device with no controls. Aim and fire still come from Unity's `Mouse`. Older firmware in mouse mode
@@ -37,8 +37,8 @@ the documentation.
   player for mouse clicks, and relies on `LightgunSession` for recoil control instead of taking control
   itself. It no longer has an `EnableForcedFeedbackControl` method.
 - Documentation lists the firmware each feature needs in a firmware compatibility table: force feedback
-  over Bluetooth Classic, force feedback in mouse mode, and rumble and LED periods that are exact
-  multiples of 256 ms (dropped by older firmware).
+  in mouse mode over USB and rumble and LED periods that are exact multiples of 256 ms need 2.1.0, and
+  force feedback over Bluetooth Classic, in either mode, needs 4.0.0.
 
 ### Removed
 - **Breaking:** the single-component output commands `BlamconRecoilCommand`, `BlamconRumbleCommand`,
