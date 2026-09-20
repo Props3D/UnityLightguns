@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 Due to package verification, the latest version below is the unpublished version and the date is meaningless.
 however, it has to be formatted properly to pass verification tests.
 
+## [Unreleased]
+
+### Added
+- `BlamconLightgunHID.GetInfo(player)` returns a `BlamconLightgunInfo`: the gun's mode, firmware version
+  (as text and as a number that compares with `>=`), board, player number and whether it takes force
+  feedback. It matches the Unreal plugin's **Get Lightgun Info**, for settings screens and for checking a
+  gun can do something before offering it. Everything is read from the device description, because Unity
+  has no feature-report command: the firmware version arrives as the USB `bcdDevice`, and the board
+  follows from it (RP2040 below 3.0.0, RP2350 from 3.0.0).
+- `BlamconLightguns.version`, the package version as a constant, for bug reports and settings screens.
+
 ## [2.0.0] - 2026-09-14
 
 Force feedback for guns in mouse mode, feedback addressed by player, an opt-in session that manages

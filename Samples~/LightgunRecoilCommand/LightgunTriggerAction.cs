@@ -89,8 +89,9 @@ namespace Samples.LightgunRecoilCommand
         /// </summary>
         void RecoilCommand(InputDevice device)
         {
-            // Recoil and the new ammo count go in one report: the gun handles one report at a time,
-            // so separate commands sent back to back can be dropped.
+            // Recoil and the new ammo count go in one report so they take effect together. The gun
+            // queues reports and applies them in order, but ignores a recoil that arrives while the
+            // previous pulses are still running.
             var report = BlamconHIDOutputReport.Create();
             report.SetRecoil(1);
             report.SetAmmo(ammoLeft);

@@ -63,6 +63,73 @@ namespace Blamcon.Lightguns
             return best;
         }
 
+        /// <summary>Firmware 1.0.16: the first that takes force feedback in Gamepad mode.</summary>
+        public const int kMinFeedbackVersion = 10016;
+
+        /// <summary>Firmware 2.1.0: the first with the vendor-defined collection, so feedback in mouse mode.</summary>
+        public const int kMinMouseModeFeedbackVersion = 20100;
+
+        /// <summary>Firmware 3.0.0: the first that shipped on the RP2350. Everything before it is an RP2040.</summary>
+        public const int kFirstRp2350Version = 30000;
+
+        /// <summary>
+        /// Reads the firmware version out of a device description. The firmware sets the USB
+        /// <c>bcdDevice</c> (and the Bluetooth device-ID record) to its version in BCD as <c>0xJJMN</c>, so
+        /// 3.0.0 arrives as 768 and 2.0.1 as 513.
+        /// </summary>
+        /// <param name="value">The description's version field.</param>
+        /// <param name="number">major * 10000 + minor * 100 + patch, or 0 when it couldn't be read.</param>
+        /// <param name="text">"3.0.0", or empty when it couldn't be read.</param>
+        /// <returns>False when the field is missing, or holds something that isn't a Blamcon BCD version.</returns>
+        public static bool TryParseFirmwareVersion(string value, out int number, out string text)
+        {
+            number = 0;
+            text = string.Empty;
+            if (!int.TryParse(value, out var bcd) || bcd <= 0 || bcd > 0xFFFF)
+                return false;
+
+            var majorTens = (bcd >> 12) & 0xF;
+            var majorUnits = (bcd >> 8) & 0xF;
+            var minor = (bcd >> 4) & 0xF;
+            var patch = bcd & 0xF;
+            // Every digit of a BCD version is 0-9. Anything else is some other device's numbering.
+            if (majorTens > 9 || majorUnits > 9 || minor > 9 || patch > 9)
+                return false;
+
+            var major = majorTens * 10 + majorUnits;
+            number = major * 10000 + minor * 100 + patch;
+            text = $"{major}.{minor}.{patch}";
+            return true;
+        }
+
+        /// <summary>Describes a player's gun, from the device that answers for it and its description.</summary>
+        public static BlamconLightgunInfo BuildInfo(IEnumerable<InputDevice> devices, int player)
+        {
+            var device = SelectFeedbackDevice(devices, player);
+            if (device == null)
+                return new BlamconLightgunInfo { playerIndex = -1, firmwareVersion = string.Empty, productName = string.Empty };
+
+            var gamepad = device is BlamconLightgunHID;
+            var known = TryParseFirmwareVersion(device.description.version, out var number, out var text);
+            var minimum = gamepad ? kMinFeedbackVersion : kMinMouseModeFeedbackVersion;
+            return new BlamconLightgunInfo
+            {
+                connected = true,
+                playerIndex = player,
+                hasGunInput = gamepad,
+                // An unknown version doesn't mean no feedback: the gun is reachable, or it wouldn't be here.
+                feedbackAvailable = !known || number >= minimum,
+                detailsKnown = known,
+                firmwareVersion = text,
+                firmwareVersionNumber = number,
+                board = !known ? LightgunBoard.Unknown
+                    : number >= kFirstRp2350Version ? LightgunBoard.RP2350 : LightgunBoard.RP2040,
+                mode = gamepad ? LightgunMode.Gamepad : LightgunMode.Mouse,
+                playerNumberOnGun = player + 1,
+                productName = device.description.product ?? string.Empty,
+            };
+        }
+
         /// <summary>0-based player index (0-3) from a Blamcon HID product ID, or -1 for anything else.</summary>
         public static int PlayerIndexFrom(InputDeviceDescription description)
         {
