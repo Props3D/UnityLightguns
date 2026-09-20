@@ -189,6 +189,24 @@ namespace Blamcon.Lightguns
             BlamconDevices.SelectFeedbackDevice(InputSystem.devices, player) as IForceFeedback;
 
         /// <summary>
+        /// Describes a player's gun: its mode, firmware version, board and whether it takes force feedback.
+        /// Use it for a settings screen, or to check a gun can do something before offering it.
+        /// </summary>
+        /// <param name="player">0-based player index: 0 is player 1.</param>
+        /// <returns>
+        /// The gun's details, or a struct with <see cref="BlamconLightgunInfo.connected"/> false when the
+        /// player has no gun. A gun in mouse mode on firmware without the vendor-defined collection is
+        /// invisible to Unity, so it reads as not connected.
+        /// </returns>
+        /// <remarks>
+        /// Everything comes from the device description, because Unity can't read the gun's feature
+        /// reports. The firmware version arrives as the USB <c>bcdDevice</c>, and the board follows from
+        /// that version.
+        /// </remarks>
+        public static BlamconLightgunInfo GetInfo(int player) =>
+            BlamconDevices.BuildInfo(InputSystem.devices, player);
+
+        /// <summary>
         /// Sends a HID output report to a player's gun, in either mode. Use this to combine several effects
         /// in one report, which the gun handles better than separate calls sent back to back.
         /// </summary>

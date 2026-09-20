@@ -43,7 +43,7 @@ public class MouseModeFeedbackTests
         InputSystem.settings.backgroundBehavior = default;
     }
 
-    internal static InputDeviceDescription HidDescription(HID.UsagePage usagePage, int usage, int productId, int vendorId = kVendorId)
+    internal static InputDeviceDescription HidDescription(HID.UsagePage usagePage, int usage, int productId, int vendorId = kVendorId, string version = null)
     {
         var descriptor = new HID.HIDDeviceDescriptor
         {
@@ -58,6 +58,7 @@ public class MouseModeFeedbackTests
             interfaceName = "HID",
             manufacturer = "Props3D",
             product = "Blamcon Lightgun (test)",
+            version = version,
             capabilities = descriptor.ToJson(),
         };
     }

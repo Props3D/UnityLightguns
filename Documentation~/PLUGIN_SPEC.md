@@ -1,8 +1,8 @@
 # Blamcon Lightguns for Unity — package specification
 
-Draft 5, 2026-09-14. Package `com.blamcon.lightguns`, targeting **2.0.0** on branch `release-2.0`
-(current release 1.1.0). Target: Unity 6000.0+, Input System 1.14, Windows. Companion to the Unreal
-plugin (`UnrealLightguns/docs/PLUGIN_SPEC.md`).
+Draft 6, 2026-09-19. Package `com.blamcon.lightguns`, currently **2.0.0** on `main`, released as
+`2.0.0-rc.0`; **2.1.0** is the next milestone (§9.5). Target: Unity 6000.0+, Input System 1.14,
+Windows. Companion to the Unreal plugin (`UnrealLightguns/docs/PLUGIN_SPEC.md`).
 
 Unlike the Unreal plugin, this package is already released. This spec describes what is built, what
 is known to be wrong or missing, and the 2.0 roadmap. 2.0 is a major version, so it takes breaking
@@ -128,15 +128,24 @@ The firmware answers feature reports `0x50` (device info: version, board, mode, 
 player) and `0x51` (live host-control bits), specified in the Unreal spec §4.1. **Unity can't read
 them** (constraint 5).
 
-Decision for this package: **don't read them in C#.** Infer what matters from which device exists,
-and log the rest:
-* Feedback availability — `GetForceFeedback(player)` returns a device.
-* Firmware build — `InputDeviceDescription.version` carries the USB `bcdDevice` (768 = 3.0.0 seen on
-  hardware). Log only. Over Bluetooth on Windows it is `0`, as with hidapi.
+Decision for this package: **don't read the feature reports in C#.** Derive what a game actually needs
+from the device description and from which devices exist, and leave the rest unknown:
+* Firmware version — `InputDeviceDescription.version` carries the USB `bcdDevice`, which the firmware
+  sets from `BLAMCON_VERSION_BCD` (`firmware/main.cpp`): BCD `0xJJMN`, so `768` (`0x0300`) is 3.0.0 and
+  `513` (`0x0201`) is 2.0.1. Seen on hardware for both the gamepad device and the vendor collection. The
+  Bluetooth Classic device-ID record carries the same value, though Windows reported `0` in the one
+  Bluetooth test so far (§9.5).
+* Board — inferred from the firmware version, not read: the RP2040 ran everything before 3.0.0 and the
+  RP2350 only ships with 3.0.0 and later.
+* Feedback availability — inferred from the firmware version and the mode, per the compatibility table
+  in the documentation. This says the **firmware** supports feedback in that mode, not that a solenoid
+  or motor is fitted; only `0x50` knows that.
 * Leftover host control from a killed session — can't be detected; mitigated by releasing control on
   every session start before taking it (§6).
 
-A native plugin that reads `0x50`/`0x51` is a deferred milestone (§9).
+Exposed to games as `BlamconLightgunHID.GetInfo(player)` in 2.1.0 (§9.5). A native plugin that reads
+`0x50`/`0x51` for the facts above that stay unknown — board as reported, feedback hardware fitted,
+live host-control bits — is still a deferred milestone (§9).
 
 ### 4.3 Mouse mode on older firmware
 
@@ -303,6 +312,47 @@ Before merging `release-2.0` into `main`: pin ARC and the shooting gallery to `#
 package from `main` with no version, so a merge would otherwise pull 2.0 into them on their next
 package refresh.
 
+5. **Device and package version in C# (2.1.0).** Match the Unreal plugin's `Get Lightgun Info` and
+   `Get Plugin Version` (`UnrealLightguns` commit `2633159`), which a developer asked for to drive a
+   settings screen. Unity can't read `0x50`, so the same struct is filled from the device description
+   and from which devices exist (§4.2).
+
+   **`BlamconLightgunInfo`** (public struct, `Blamcon.Lightguns`), with `LightgunMode` and
+   `LightgunBoard` enums. Field names match the Unreal struct, in C# casing:
+
+   | Field | Source |
+   |---|---|
+   | `connected` | a Blamcon device exists with this player index |
+   | `playerIndex` | `BlamconDevices.PlayerIndexFrom`, as today |
+   | `hasGunInput` | a `BlamconLightgunHID` exists for the player; false in mouse mode |
+   | `feedbackAvailable` | firmware version and mode, per the compatibility table |
+   | `detailsKnown` | the description carried a usable `bcdDevice` |
+   | `firmwareVersion` | `"3.0.0"`, or empty when the version didn't parse |
+   | `firmwareVersionNumber` | `major * 10000 + minor * 100 + patch`, so 3.0.0 is `30000` and versions compare with `>=`; `0` when unknown. Matches the Unreal field |
+   | `board` | `RP2040` below 3.0.0, `RP2350` from 3.0.0, `Unknown` when the version is unknown |
+   | `mode` | `Gamepad` or `Mouse`, from which device type answers for the player |
+   | `playerNumberOnGun` | `playerIndex + 1`; the PID the gun advertises is set from its own player number |
+   | `productName` | `description.product` |
+
+   No `connection` field. The Unreal struct has one because hidapi reports the bus; Unity doesn't
+   expose it, and the only proxy — a `0` version over Bluetooth — is a single hardware observation.
+   Nothing in the package needs it until Bluetooth feedback ships in firmware 4.0.0, so it waits for
+   that work rather than shipping as a guess.
+
+   **API:** `BlamconLightgunHID.GetInfo(int player)` beside `GetForceFeedback(player)`, routing through
+   the same `BlamconDevices.SelectFeedbackDevice`, and returning a struct with `connected` false when
+   the player has no gun. Plus `BlamconLightguns.version`, a `const string` holding the package version,
+   which is the closest equivalent to Unreal reading its plugin descriptor:
+   `UnityEditor.PackageManager.PackageInfo` is editor-only, so a player build can't ask the manifest.
+   A test asserts the constant matches `package.json` in the Editor, so a release bump can't drift.
+
+   *Exit: a settings screen can show each player's gun, its firmware version and whether it takes
+   feedback, without a single device lookup of its own.*
+   **Status: built on `release-2.0`** (`c355d07`, `f599fff`). 60 tests pass in Unity, including the 8
+   new ones, and ARC compiles against it. Not yet checked on hardware: what a real gun reports as its
+   `bcdDevice`, in either mode. Shipping needs `package.json` and `BlamconLightguns.version` moved to
+   2.1.0 together; the test holds them level.
+
 ### Future milestones (deferred)
 
 * **Decoded state format code** (3.0), see §5.
@@ -333,6 +383,15 @@ bytes sent):
   duplicates or guns without a player index.
 * On hardware: with a `LightgunSession` in the scene, leaving play mode returns recoil to firing on the
   trigger; alt-tabbing away does the same and alt-tabbing back takes control again.
+* `GetInfo(player)` on a fabricated gamepad description reports `hasGunInput`, mode `Gamepad`, the
+  firmware version parsed from `bcdDevice` (`768` -> `"3.0.0"`, `30000`, board `RP2350`; `513` ->
+  `"2.0.1"`, `20001`, board `RP2040`), and `playerNumberOnGun` one above the index.
+* `GetInfo` on a vendor-collection description reports mode `Mouse` and `hasGunInput` false; with both
+  devices present it reports mode `Gamepad`.
+* `GetInfo` on a description with a missing or unparseable version reports `detailsKnown` false, board
+  `Unknown`, an empty version string and `0` — and still reports `connected` and `mode`.
+* `GetInfo` for a player with no gun returns `connected` false and `playerIndex` -1.
+* `BlamconLightguns.version` matches the `version` field in `package.json` (Editor only).
 
 On hardware:
 * Gamepad mode, USB and Bluetooth: recoil, rumble, LED, ammo; aim reaches every screen edge.
@@ -361,7 +420,15 @@ Decided (2026-09-14):
 * **Tests run in the Unity Test Runner on Windows.** The consuming test project needs
   `"testables": ["com.blamcon.lightguns"]` in `Packages/manifest.json` for the package's tests to appear.
 
+Decided (2026-09-19):
+* **`GetInfo` derives, it doesn't ask** (§4.2): firmware version from `bcdDevice`, board and feedback
+  availability from that version. Board is safe to infer because the RP2350 ships only with firmware
+  3.0.0 and later.
+* **No `connection` field in 2.1.0** (§9.5), since Bluetooth feedback is firmware 4.0.0 work.
+
 Still open:
+* **Does `bcdDevice` survive Bluetooth Classic on Windows?** One test read `0`. It decides whether
+  `GetInfo` reports a firmware version for a Bluetooth gun, and is worth rechecking when 4.0.0 lands.
 * **How long does `HIDO` block,** over USB and over Bluetooth? Decides whether commands need spacing.
 * **Rumble and ammo through the vendor collection** — only recoil and LED were tested.
 * **Emulators and front ends with the extra collection** — shared with the Unreal plugin; unchecked.

@@ -9,6 +9,7 @@ uid: input-system-lightgun
   - [Forced Feedback Commands](#forced-feedback-commands)
     - [Firmware compatibility](#firmware-compatibility)
     - [Lightgun Session](#lightgun-session)
+    - [Reading a gun's state](#reading-a-guns-state)
 - [Upgrading from 1.x](#upgrading-from-1x)
 
 Physically, Lightguns represent input devices attached to the computer through USB, which a user can use to control the app. All lightguns are built on the HID interface, and have the ability to connect to the computer as either:
@@ -154,6 +155,36 @@ BlamconLightgunHID.SendCommand(0, ref report);
 ```
 
 Keep one enabled session at a time; two send every command twice. To find which player a Gamepad-mode gun belongs to, use `BlamconLightgunHID.playerIndex` (0 is player 1). A gun in mouse mode arrives as Unity's `Mouse`, which can't identify the gun.
+
+#### Reading a gun's state
+
+`BlamconLightgunHID.GetInfo(player)` describes one player's gun, for a settings screen or to check what a gun can do before offering it:
+
+```CSharp
+var info = BlamconLightgunHID.GetInfo(0);
+if (info.connected && info.feedbackAvailable)
+    Debug.Log($"Player 1: {info.productName}, firmware {info.firmwareVersion}, {info.mode} mode");
+```
+
+| Field | Meaning |
+|---|---|
+| `connected` | A gun has this player index. Every other field is default when false |
+| `playerIndex` | 0-based, as passed to the other calls. -1 when no gun is connected |
+| `hasGunInput` | Sends aim and buttons. False in mouse mode, where aim comes from Unity's `Mouse` |
+| `feedbackAvailable` | The firmware takes force feedback in this mode |
+| `detailsKnown` | The firmware version could be read. False leaves the three fields below empty |
+| `firmwareVersion` | `"3.0.0"`, or empty when it couldn't be read |
+| `firmwareVersionNumber` | 30000 for 3.0.0, so versions compare with `>=` |
+| `board` | `RP2040` below firmware 3.0.0, `RP2350` from 3.0.0, the first firmware on that board |
+| `mode` | `Gamepad` or `Mouse` |
+| `playerNumberOnGun` | 1-4, set on the gun itself. `playerIndex` is this minus one |
+| `productName` | The gun's USB product name |
+
+The struct holds device facts only. Game preferences, such as the player's chosen LED colour or whether they want rumble, belong in your own settings.
+
+`feedbackAvailable` says the firmware supports feedback in this mode, not that a solenoid or motor is fitted; Unity can't read the gun's hardware inventory. The firmware version comes from the USB `bcdDevice`, so a gun that doesn't report one reads as `detailsKnown` false and still works.
+
+`BlamconLightguns.version` is the package's own version, for bug reports or an about screen.
 
 ## Upgrading from 1.x
 
