@@ -1,0 +1,212 @@
+{
+    "name": "LightgunInputActions",
+    "maps": [
+        {
+            "name": "Player",
+            "id": "43493f7b-e239-4137-8975-c45d42b5d966",
+            "actions": [
+                {
+                    "name": "Fire",
+                    "type": "PassThrough",
+                    "id": "7fabde74-1205-405a-bfe2-e955dba4c7b9",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "Press(pressPoint=1)",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Move",
+                    "type": "PassThrough",
+                    "id": "398a124f-0600-422e-880e-a94191007fac",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "Reload",
+                    "type": "PassThrough",
+                    "id": "279f3a6c-9566-4756-aadf-ac76814e963f",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Submit",
+                    "type": "Button",
+                    "id": "4ba8059d-78a1-4094-a75f-983f05a892fa",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Point",
+                    "type": "PassThrough",
+                    "id": "4b10b051-3a61-490f-81d7-54444d8219b4",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "dc4f4ae7-ca18-41ff-a36b-f896fb37c5d6",
+                    "path": "<LightGun>/buttonWest",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Lightgun;Mouse&Keyboard",
+                    "action": "Fire",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "8a3a3f59-8e2c-444f-b8fb-6884897b0834",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Mouse&Keyboard;Lightgun",
+                    "action": "Fire",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "beaabbaa-20d7-450a-a253-326356335ce5",
+                    "path": "<LightGun>/position",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Lightgun;Mouse&Keyboard",
+                    "action": "Move",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "1290741e-cd3d-437f-a62a-75031bb5d0f6",
+                    "path": "<Mouse>/position",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Mouse&Keyboard;Lightgun",
+                    "action": "Move",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "98a003b0-9a34-4a26-b022-ed8c8d96398e",
+                    "path": "<LightGun>/buttonSouth",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Lightgun;Mouse&Keyboard",
+                    "action": "Reload",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "44d9928c-8605-4597-aa2c-860332a38c98",
+                    "path": "<Mouse>/rightButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Mouse&Keyboard;Lightgun",
+                    "action": "Reload",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "2c5df6f8-659e-4347-8831-7ce993b75399",
+                    "path": "<LightGun>/position",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Lightgun;Mouse&Keyboard",
+                    "action": "Point",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "8c3449bb-bf34-42ba-b658-cf26d6c5a481",
+                    "path": "<Mouse>/position",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Mouse&Keyboard;Lightgun",
+                    "action": "Point",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "efcbd1aa-35b6-4239-98ab-d06be0cdf702",
+                    "path": "<LightGun>/buttonEast",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Lightgun;Mouse&Keyboard",
+                    "action": "Submit",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f1e5d2a2-a269-48b4-972b-31b59f24465c",
+                    "path": "<Mouse>/middleButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Mouse&Keyboard;Lightgun",
+                    "action": "Submit",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": [
+        {
+            "name": "Mouse&Keyboard",
+            "bindingGroup": "Mouse&Keyboard",
+            "devices": [
+                {
+                    "devicePath": "<Keyboard>",
+                    "isOptional": false,
+                    "isOR": false
+                },
+                {
+                    "devicePath": "<Mouse>",
+                    "isOptional": false,
+                    "isOR": false
+                },
+                {
+                    "devicePath": "<LightGun>",
+                    "isOptional": false,
+                    "isOR": false
+                }
+            ]
+        },
+        {
+            "name": "Lightgun",
+            "bindingGroup": "Lightgun",
+            "devices": [
+                {
+                    "devicePath": "<LightGun>",
+                    "isOptional": false,
+                    "isOR": false
+                },
+                {
+                    "devicePath": "<Keyboard>",
+                    "isOptional": false,
+                    "isOR": false
+                },
+                {
+                    "devicePath": "<Mouse>",
+                    "isOptional": false,
+                    "isOR": false
+                }
+            ]
+        }
+    ]
+}

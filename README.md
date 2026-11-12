@@ -1,0 +1,31 @@
+# Blamcon Lightguns for Unity (Package)
+
+An extension package to the [Unity Platform](https://unity.com/products/unity-platform) that provides HID device support for Blamcon Lightguns.
+
+## Prerequisites
+
+The current version of Blamcon Lightguns for Unity package requires Unity 6 and Unity Input System 1.14 to compile and run.
+
+> NOTE: Blamcon device firmware has to be on 1.0.16 or greater. Some features need newer firmware, including force feedback in mouse mode (2.1.0 over USB) and over Bluetooth Classic (4.0.0); see [Firmware compatibility](Documentation~/com.blamcon.lightguns.md#firmware-compatibility).
+>
+> Aiming and buttons come through the `Lightgun` device in Gamepad mode, or through Unity's `Mouse` in mouse mode. Force feedback works in both modes.
+
+## Getting Started
+
+Tutorials on how to use the Input System are available as part of:
+- Example projects part of this repository:
+    - [Crosshair Positioning](Samples~/LightgunCrosshair) - Demonstrates how to control the position of a crosshair using lightgun positioning.
+    - [Feedback Commands](Samples~/LightgunRecoilCommand) - Demonstrates how to send recoil and an ammo count to the gun that fired, in Gamepad or mouse mode.
+
+Upgrading from 1.x? See [Upgrading from 1.x](Documentation~/com.blamcon.lightguns.md#upgrading-from-1x).
+
+## Contribution & Feedback
+This project is developed by Props3D but welcomes user contributions and feedback.
+
+If you have any feedback or questions about Blamcon Lightguns for unity, you are invited to join us on the [Props3D Discord](https://discord.gg/UTzjDgZ9uP).
+
+If you want to contribute to the development of the Blamcon Lightguns for Unity Package, reach out to us on Discord.
+
+## License
+
+This package is distributed under the [MIT](LICENSE.md) license.
